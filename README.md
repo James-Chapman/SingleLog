@@ -1,2 +1,2 @@
 # cppSingleLog
-Header only C++ logging library
+Header only C++11 logging library
