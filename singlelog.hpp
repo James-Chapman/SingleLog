@@ -137,7 +137,7 @@ namespace Logging
     /**
      * Logger class
      */
-    class SingletonLogger
+    class SingleLog
     {
     public:
         /**
@@ -146,16 +146,16 @@ namespace Logging
          * http://stackoverflow.com/questions/8102125/is-local-static-variable-initialization-thread-safe-in-c11
          * http://stackoverflow.com/questions/33114896/reentrancy-in-static-method-with-static-variable
          */
-        static SingletonLogger * getInstance()
+        static SingleLog * getInstance()
         {
-            static SingletonLogger instance;
+            static SingleLog instance;
             return &instance;
         }
 
         /**
          * Destructor
          */
-        ~SingletonLogger()
+        ~SingleLog()
         {
             if (!m_exit.load())
             {
@@ -394,7 +394,7 @@ namespace Logging
         /**
          * Private Constructor
          */
-        SingletonLogger()
+        SingleLog()
         {
 #ifdef _WIN32
             InitializeCriticalSection(&m_consoleLogDequeLock);
@@ -405,15 +405,15 @@ namespace Logging
             m_fileLogLevel = L_TRACE;
             m_filePath = "";
             m_exit = false;
-            m_consoleWriter = std::thread(&SingletonLogger::consoleWriter, this);
-            m_fstreamWriter = std::thread(&SingletonLogger::fstreamWriter, this);
+            m_consoleWriter = std::thread(&SingleLog::consoleWriter, this);
+            m_fstreamWriter = std::thread(&SingleLog::fstreamWriter, this);
         }
 
         /**
          * Copy constructor, we don't want it since this is a Singleton
          */
-        SingletonLogger(SingletonLogger const& copy) = delete;
-        SingletonLogger& operator=(SingletonLogger const& copy) = delete;
+        SingleLog(SingleLog const& copy) = delete;
+        SingleLog& operator=(SingleLog const& copy) = delete;
 
         /**
          * string <--> wstring converter
