@@ -43,8 +43,6 @@
 #endif
 
 
-#include "scopedlock.hpp"
-
 namespace Uplinkzero
 {
     
