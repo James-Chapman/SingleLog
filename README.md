@@ -24,3 +24,23 @@ int main()
     return 0;
 }
 ```
+
+Which when run will produce the following in the console:
+```
+2016-11-01 11:53:11  <CRITICAL>  main:  Critial message
+2016-11-01 11:53:11  <ERROR>  main:  Error message
+2016-11-01 11:53:11  <WARNING>  main:  Warning message
+2016-11-01 11:53:11  <NOTICE>  main:  Notice message
+2016-11-01 11:53:11  <INFO>  main:  Info message
+```
+
+And the following in the log file **"example.log"**:
+```
+2016-11-01 11:53:11  <CRITICAL>  main:  Critial message
+2016-11-01 11:53:11  <ERROR>  main:  Error message
+2016-11-01 11:53:11  <WARNING>  main:  Warning message
+2016-11-01 11:53:11  <NOTICE>  main:  Notice message
+2016-11-01 11:53:11  <INFO>  main:  Info message
+2016-11-01 11:53:11  <DEBUG>  main:  Debug message
+2016-11-01 11:53:11  <TRACE>  main:  Trace message
+```
