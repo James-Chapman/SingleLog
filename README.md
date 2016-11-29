@@ -3,6 +3,7 @@ SingleLog is a header only C++11 singleton logging library. It's fast, convenien
 
 It's as easy as:
 ```c++
+#include <string>
 #include "singlelog.hpp"
 
 int main()
