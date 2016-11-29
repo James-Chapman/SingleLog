@@ -168,11 +168,11 @@ namespace Logging
                 m_fileOut << "\n\n";
                 m_fileOut.close();
             }
-#ifdef _WIN32
+        #ifdef _WIN32
             DeleteCriticalSection(&m_consoleLogDequeLock);
             DeleteCriticalSection(&m_fstreamLogDequeLock);
             DeleteCriticalSection(&m_fstreamLock);
-#endif
+        #endif
         }
 
         /**
@@ -213,7 +213,7 @@ namespace Logging
         /**
          * Log TRACE level messages
          */
-#ifdef _DEBUG
+    #ifdef _DEBUG
         void trace(std::string _mod, std::string _msg)
         {
             std::string level = "TRACE";
@@ -227,10 +227,10 @@ namespace Logging
                 fileLog(line);
             }
         }
-#else
+    #else
         void trace(std::string _mod, std::string _msg)
         {}
-#endif
+    #endif
 
         /**
          * Log TRACE level messages
@@ -396,11 +396,11 @@ namespace Logging
          */
         SingleLog()
         {
-#ifdef _WIN32
+        #ifdef _WIN32
             InitializeCriticalSection(&m_consoleLogDequeLock);
             InitializeCriticalSection(&m_fstreamLogDequeLock);
             InitializeCriticalSection(&m_fstreamLock);
-#endif
+        #endif
             m_consoleLogLevel = L_TRACE;
             m_fileLogLevel = L_TRACE;
             m_filePath = "";
