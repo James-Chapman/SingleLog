@@ -544,3 +544,4 @@ namespace Logging
 
 
 #endif // SINGLELOG_HPP
+
