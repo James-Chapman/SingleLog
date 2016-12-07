@@ -31,8 +31,11 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <sstream>
+#include <mutex>
+#include <ctime>
 #ifdef __MINGW64__
 #include "mingw.thread.h"
 #else
@@ -102,19 +105,22 @@ namespace Logging
         L_OFF = 1000
     } LogLevel;
 
+        /**
+         * string <--> wstring converter
+         * C++11
+         */
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> g_converter;
+
     /**
      * Get current date/time, format is YYYY-MM-DD HH:mm:ss
      * ref: http://en.cppreference.com/w/cpp/chrono/c/wcsftime
      */
     inline static std::string currentDateTime()
     {
-        time_t     now = time(0);
-        struct tm  tstruct = { 0 };
-        char    buf[30] = { 0 };
-        localtime_s(&tstruct, &now);
-        asctime_s(buf, &tstruct);
-        strftime(buf, sizeof(buf), "%F %T", &tstruct); // equivalent to "%Y-%m-%d %H:%M:%S"
-        return buf;
+        std::stringstream ss;
+        std::time_t t = std::time(nullptr);
+        ss << std::put_time(std::localtime(&t), "%F %T");
+        return ss.str();
     }
 
     /**
@@ -123,13 +129,8 @@ namespace Logging
      */
     inline static std::wstring currentDateTimeW()
     {
-        time_t     now = time(0);
-        struct tm  tstruct = { 0 };
-        wchar_t    buf[30] = { 0 };
-        localtime_s(&tstruct, &now);
-        _wasctime_s(buf, &tstruct);
-        wcsftime(buf, sizeof(buf), L"%F %T", &tstruct); // equivalent to "%Y-%m-%d %H:%M:%S"
-        return buf;
+        std::string dateTimeSz = currentDateTime();
+        return g_converter.from_bytes(dateTimeSz);
     }
 
 
@@ -207,7 +208,7 @@ namespace Logging
          */
         void setLogFilePath(std::wstring _filePath)
         {
-            setLogFilePath(m_converter.to_bytes(_filePath));
+            setLogFilePath(m_convU8.to_bytes(_filePath));
         }
 
         /**
@@ -237,7 +238,7 @@ namespace Logging
          */
         void trace(std::wstring _mod, std::wstring _msg)
         {
-            trace(m_converter.to_bytes(_mod), m_converter.to_bytes(_msg));
+            trace(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
         }
 
         /**
@@ -262,7 +263,7 @@ namespace Logging
          */
         void debug(std::wstring _mod, std::wstring _msg)
         {
-            debug(m_converter.to_bytes(_mod), m_converter.to_bytes(_msg));
+            debug(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
         }
 
         /**
@@ -287,7 +288,7 @@ namespace Logging
          */
         void info(std::wstring _mod, std::wstring _msg)
         {
-            info(m_converter.to_bytes(_mod), m_converter.to_bytes(_msg));
+            info(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
         }
 
         /**
@@ -312,7 +313,7 @@ namespace Logging
          */
         void notice(std::wstring _mod, std::wstring _msg)
         {
-            notice(m_converter.to_bytes(_mod), m_converter.to_bytes(_msg));
+            notice(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
         }
 
         /**
@@ -337,7 +338,7 @@ namespace Logging
          */
         void warning(std::wstring _mod, std::wstring _msg)
         {
-            warning(m_converter.to_bytes(_mod), m_converter.to_bytes(_msg));
+            warning(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
         }
 
         /**
@@ -362,7 +363,7 @@ namespace Logging
          */
         void error(std::wstring _mod, std::wstring _msg)
         {
-            error(m_converter.to_bytes(_mod), m_converter.to_bytes(_msg));
+            error(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
         }
 
         /**
@@ -387,7 +388,7 @@ namespace Logging
          */
         void critical(std::wstring _mod, std::wstring _msg)
         {
-            critical(m_converter.to_bytes(_mod), m_converter.to_bytes(_msg));
+            critical(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
         }
 
     private:
@@ -419,7 +420,9 @@ namespace Logging
          * string <--> wstring converter
          * C++11
          */
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> m_converter;
+//        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> m_converter;
+        std::wstring_convert<std::codecvt_utf8<wchar_t>> m_convU8;
+        std::wstring_convert<std::codecvt_utf16<wchar_t>> m_convU16;
 
         /**
          * Create a common format log line
@@ -428,10 +431,11 @@ namespace Logging
         inline std::string makeLogLine(std::string _level, std::string _module, std::string _message)
         {
             std::stringstream ss;
-            ss << "" << currentDateTime() << "  <" << _level << ">  " + _module + ":  " << _message << "\n";
+            ss << "" << currentDateTime() << "  <" << _level << ">  " + _module + ":  " << _message << std::endl;
             std::string ansi_s = ss.str();
-            std::wstring utf16_s = m_converter.from_bytes(ansi_s);
-            return m_converter.to_bytes(utf16_s); // return UTF-8
+            std::wstring utf16_s = m_convU16.from_bytes(ansi_s);
+            std::string utf8_s = m_convU8.to_bytes(utf16_s);
+            return utf8_s; // return UTF-8
         }
 
         /**
