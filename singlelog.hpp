@@ -420,7 +420,6 @@ namespace Logging
          * string <--> wstring converter
          * C++11
          */
-//        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> m_converter;
         std::wstring_convert<std::codecvt_utf8<wchar_t>> m_convU8;
         std::wstring_convert<std::codecvt_utf16<wchar_t>> m_convU16;
 
