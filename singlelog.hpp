@@ -420,6 +420,7 @@ namespace Logging
          * string <--> wstring converter
          * C++11
          */
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> m_winConverter;
         std::wstring_convert<std::codecvt_utf8<wchar_t>> m_convU8;
         std::wstring_convert<std::codecvt_utf16<wchar_t>> m_convU16;
 
@@ -432,8 +433,13 @@ namespace Logging
             std::stringstream ss;
             ss << "" << currentDateTime() << "  <" << _level << ">  " + _module + ":  " << _message << std::endl;
             std::string ansi_s = ss.str();
+        #ifdef _WIN32
+            std::wstring utf16_s = m_winConverter.from_bytes(ansi_s);
+            std::string utf8_s = m_winConverter.to_bytes(utf16_s);
+        #else
             std::wstring utf16_s = m_convU16.from_bytes(ansi_s);
             std::string utf8_s = m_convU8.to_bytes(utf16_s);
+        #endif
             return utf8_s; // return UTF-8
         }
 
