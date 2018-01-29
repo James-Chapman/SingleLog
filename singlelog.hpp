@@ -36,11 +36,8 @@
 #include <sstream>
 #include <mutex>
 #include <ctime>
-#ifdef __MINGW64__
-#include "mingw.thread.h"
-#else
 #include <thread>
-#endif
+
 #ifdef _WIN32
 #include <Windows.h>
 #endif
@@ -60,7 +57,7 @@ namespace Logging
     {
     public:
     #ifdef _WIN32
-        ScopedLogLock(CRITICAL_SECTION * _cs)
+        explicit ScopedLogLock(CRITICAL_SECTION * _cs)
         {
             m_lock = _cs;
             EnterCriticalSection(m_lock);
@@ -71,7 +68,7 @@ namespace Logging
             m_lock = nullptr;
         }
     #else
-        ScopedLogLock(std::mutex * _mtx)
+        explicit ScopedLogLock(std::mutex * _mtx)
         {
             m_lock = _mtx;
             m_lock->lock();
@@ -115,7 +112,7 @@ namespace Logging
      * Get current date/time, format is YYYY-MM-DD HH:mm:ss
      * ref: http://en.cppreference.com/w/cpp/chrono/c/wcsftime
      */
-    inline static std::string currentDateTime()
+    inline  std::string currentDateTime()
     {
         std::stringstream ss;
         std::time_t t = std::time(nullptr);
@@ -127,7 +124,7 @@ namespace Logging
      * Get current date/time, format is YYYY-MM-DD HH:mm:ss
      * ref: http://en.cppreference.com/w/cpp/chrono/c/wcsftime
      */
-    inline static std::wstring currentDateTimeW()
+    inline std::wstring currentDateTimeW()
     {
         std::string dateTimeSz = currentDateTime();
         return g_converter.from_bytes(dateTimeSz);
@@ -180,7 +177,7 @@ namespace Logging
          * Set the minimum log level for the console
          * L_TRACE, L_DEBUG, L_INFO, L_NOTICE, L_WARNING, ERROR, L_CRITICAL, L_OFF
          */
-        void setConsoleLogLevel(LogLevel _logLevel)
+        void setConsoleLogLevel(const LogLevel& _logLevel)
         {
             m_consoleLogLevel = _logLevel;
         }
@@ -189,7 +186,7 @@ namespace Logging
          * Set the minimum log level for the log file
          * L_TRACE, L_DEBUG, L_INFO, L_NOTICE, L_WARNING, ERROR, L_CRITICAL, L_OFF
          */
-        void setFileLogLevel(LogLevel _logLevel)
+        void setFileLogLevel(const LogLevel& _logLevel)
         {
             m_fileLogLevel = _logLevel;
         }
@@ -197,16 +194,16 @@ namespace Logging
         /**
         * Set the path to the log file
         */
-        void setLogFilePath(std::string _filePath)
+        void setLogFilePath(const std::string& _filePath)
         {
             m_filePath = _filePath;
-            m_fileOut.open(m_filePath, std::ios_base::out | std::ios_base::out);
+            m_fileOut.open(m_filePath, std::ios_base::out);
         }
 
         /**
          * Set the path to the log file
          */
-        void setLogFilePath(std::wstring _filePath)
+        void setLogFilePath(const std::wstring& _filePath)
         {
             setLogFilePath(m_convU8.to_bytes(_filePath));
         }
@@ -215,7 +212,7 @@ namespace Logging
          * Log TRACE level messages
          */
     #ifdef _DEBUG
-        void trace(std::string _mod, std::string _msg)
+        void trace(const std::string& _mod, const std::string& _msg)
         {
             std::string level = "TRACE";
             std::string line = makeLogLine(level, _mod, _msg);
@@ -229,14 +226,14 @@ namespace Logging
             }
         }
     #else
-        void trace(std::string _mod, std::string _msg)
+        void trace(const std::string& _mod, const std::string& _msg)
         {}
     #endif
 
         /**
          * Log TRACE level messages
          */
-        void trace(std::wstring _mod, std::wstring _msg)
+        void trace(const std::wstring& _mod, const std::wstring& _msg)
         {
             trace(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
         }
@@ -244,7 +241,7 @@ namespace Logging
         /**
          * Log DEBUG level messages
          */
-        void debug(std::string _mod, std::string _msg)
+        void debug(const std::string& _mod, const std::string& _msg)
         {
             std::string level = "DEBUG";
             std::string line = makeLogLine(level, _mod, _msg);
@@ -261,7 +258,7 @@ namespace Logging
         /**
          * Log DEBUG level messages
          */
-        void debug(std::wstring _mod, std::wstring _msg)
+        void debug(const std::wstring& _mod, const std::wstring& _msg)
         {
             debug(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
         }
@@ -269,7 +266,7 @@ namespace Logging
         /**
          * Log INFO level messages
          */
-        void info(std::string _mod, std::string _msg)
+        void info(const std::string& _mod, const std::string& _msg)
         {
             std::string level = "INFO";
             std::string line = makeLogLine(level, _mod, _msg);
@@ -286,7 +283,7 @@ namespace Logging
         /**
          * Log INFO level messages
          */
-        void info(std::wstring _mod, std::wstring _msg)
+        void info(const std::wstring& _mod, const std::wstring& _msg)
         {
             info(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
         }
@@ -294,7 +291,7 @@ namespace Logging
         /**
          * Log NOTICE level messages
          */
-        void notice(std::string _mod, std::string _msg)
+        void notice(const std::string& _mod, const std::string& _msg)
         {
             std::string level = "NOTICE";
             std::string line = makeLogLine(level, _mod, _msg);
@@ -311,7 +308,7 @@ namespace Logging
         /**
          * Log NOTICE level messages
          */
-        void notice(std::wstring _mod, std::wstring _msg)
+        void notice(const std::wstring& _mod, const std::wstring& _msg)
         {
             notice(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
         }
@@ -319,7 +316,7 @@ namespace Logging
         /**
          * Log WARNING level messages
          */
-        void warning(std::string _mod, std::string _msg)
+        void warning(const std::string& _mod, const std::string& _msg)
         {
             std::string level = "WARNING";
             std::string line = makeLogLine(level, _mod, _msg);
@@ -336,7 +333,7 @@ namespace Logging
         /**
          * Log WARNING level messages
          */
-        void warning(std::wstring _mod, std::wstring _msg)
+        void warning(const std::wstring& _mod, const std::wstring& _msg)
         {
             warning(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
         }
@@ -344,7 +341,7 @@ namespace Logging
         /**
          * Log ERROR level messages
          */
-        void error(std::string _mod, std::string _msg)
+        void error(const std::string& _mod, const std::string& _msg)
         {
             std::string level = "ERROR";
             std::string line = makeLogLine(level, _mod, _msg);
@@ -361,7 +358,7 @@ namespace Logging
         /**
          * Log ERROR level messages
          */
-        void error(std::wstring _mod, std::wstring _msg)
+        void error(const std::wstring& _mod, const std::wstring& _msg)
         {
             error(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
         }
@@ -369,7 +366,7 @@ namespace Logging
         /**
          * Log CRITICAL level messages
          */
-        void critical(std::string _mod, std::string _msg)
+        void critical(const std::string& _mod, const std::string& _msg)
         {
             std::string level = "CRITICAL";
             std::string line = makeLogLine(level, _mod, _msg);
@@ -386,7 +383,7 @@ namespace Logging
         /**
          * Log CRITICAL level messages
          */
-        void critical(std::wstring _mod, std::wstring _msg)
+        void critical(const std::wstring& _mod, const std::wstring& _msg)
         {
             critical(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
         }
@@ -396,16 +393,16 @@ namespace Logging
          * Private Constructor
          */
         SingleLog()
+                : m_consoleLogLevel(L_TRACE)
+                , m_fileLogLevel(L_TRACE)
+                , m_filePath("")
+                , m_exit(false)
         {
         #ifdef _WIN32
             InitializeCriticalSection(&m_consoleLogDequeLock);
             InitializeCriticalSection(&m_fstreamLogDequeLock);
             InitializeCriticalSection(&m_fstreamLock);
         #endif
-            m_consoleLogLevel = L_TRACE;
-            m_fileLogLevel = L_TRACE;
-            m_filePath = "";
-            m_exit = false;
             m_consoleWriter = std::thread(&SingleLog::consoleWriter, this);
             m_fstreamWriter = std::thread(&SingleLog::fstreamWriter, this);
         }
@@ -420,15 +417,15 @@ namespace Logging
          * string <--> wstring converter
          * C++11
          */
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> m_winConverter;
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> m_convU8;
-        std::wstring_convert<std::codecvt_utf16<wchar_t>> m_convU16;
+         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> m_winConverter;
+         std::wstring_convert<std::codecvt_utf8<wchar_t>> m_convU8;
+         std::wstring_convert<std::codecvt_utf16<wchar_t>> m_convU16;
 
         /**
          * Create a common format log line
          * Note: There might be a better way to produce UTF8 from ANSI text? This is "expensive".
          */
-        inline std::string makeLogLine(std::string _level, std::string _module, std::string _message)
+        inline  std::string makeLogLine(const std::string& _level, const std::string& _module, const std::string& _message)
         {
             std::stringstream ss;
             ss << "" << currentDateTime() << "  <" << _level << ">  " + _module + ":  " << _message << std::endl;
@@ -523,10 +520,10 @@ namespace Logging
             }
         }
 
-        LogLevel         m_consoleLogLevel; // Min level for console logs
-        LogLevel         m_fileLogLevel;    // Min level for file logs
-        std::ofstream    m_fileOut;         // File output stream
-        std::string      m_filePath;        // Log file path
+         LogLevel         m_consoleLogLevel; // Min level for console logs
+         LogLevel         m_fileLogLevel;    // Min level for file logs
+         std::ofstream    m_fileOut;         // File output stream
+         std::string      m_filePath;        // Log file path
 
     #ifdef _WIN32
         CRITICAL_SECTION m_consoleLogDequeLock;
@@ -538,13 +535,13 @@ namespace Logging
         std::mutex m_fstreamLock;
     #endif
 
-        std::deque<std::string> m_consoleLogDeque;
-        std::deque<std::string> m_fstreamLogDeque;
+         std::deque<std::string> m_consoleLogDeque;
+         std::deque<std::string> m_fstreamLogDeque;
 
-        std::atomic_bool m_exit;
+         std::atomic_bool m_exit;
 
-        std::thread m_consoleWriter;
-        std::thread m_fstreamWriter;
+         std::thread m_consoleWriter;
+         std::thread m_fstreamWriter;
     };
     
 }; // namespace Logging
