@@ -86,7 +86,8 @@ namespace Logging
         std::mutex * m_lock;
     #endif
     };
-        
+
+
     /**
      * Levels of logging available
      */
@@ -102,23 +103,26 @@ namespace Logging
         L_OFF = 1000
     } LogLevel;
 
-        /**
-         * string <--> wstring converter
-         * C++11
-         */
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> g_converter;
+
+    /**
+     * string <--> wstring converter
+     * C++11
+     */
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> g_converter;
+
 
     /**
      * Get current date/time, format is YYYY-MM-DD HH:mm:ss
      * ref: http://en.cppreference.com/w/cpp/chrono/c/wcsftime
      */
-    inline  std::string currentDateTime()
+    inline std::string currentDateTime()
     {
         std::stringstream ss;
         std::time_t t = std::time(nullptr);
         ss << std::put_time(std::localtime(&t), "%F %T");
         return ss.str();
     }
+
 
     /**
      * Get current date/time, format is YYYY-MM-DD HH:mm:ss
@@ -212,10 +216,10 @@ namespace Logging
          * Log TRACE level messages
          */
     #ifdef _DEBUG
-        void trace(const std::string& _mod, const std::string& _msg)
+        void trace(const std::string& _module, const std::string& _message)
         {
             std::string level = "TRACE";
-            std::string line = makeLogLine(level, _mod, _msg);
+            std::string line = makeLogLine(level, _module, _message);
             if (m_consoleLogLevel <= L_TRACE)
             {
                 consoleLog(line);
@@ -226,25 +230,25 @@ namespace Logging
             }
         }
     #else
-        void trace(const std::string& _mod, const std::string& _msg)
+        void trace(const std::string& _module, const std::string& _message)
         {}
     #endif
 
         /**
          * Log TRACE level messages
          */
-        void trace(const std::wstring& _mod, const std::wstring& _msg)
+        void trace(const std::wstring& _module, const std::wstring& _message)
         {
-            trace(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
+            trace(m_convU8.to_bytes(_module), m_convU8.to_bytes(_message));
         }
 
         /**
          * Log DEBUG level messages
          */
-        void debug(const std::string& _mod, const std::string& _msg)
+        void debug(const std::string& _module, const std::string& _message)
         {
             std::string level = "DEBUG";
-            std::string line = makeLogLine(level, _mod, _msg);
+            std::string line = makeLogLine(level, _module, _message);
             if (m_consoleLogLevel <= L_DEBUG)
             {
                 consoleLog(line);
@@ -258,18 +262,18 @@ namespace Logging
         /**
          * Log DEBUG level messages
          */
-        void debug(const std::wstring& _mod, const std::wstring& _msg)
+        void debug(const std::wstring& _module, const std::wstring& _message)
         {
-            debug(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
+            debug(m_convU8.to_bytes(_module), m_convU8.to_bytes(_message));
         }
 
         /**
          * Log INFO level messages
          */
-        void info(const std::string& _mod, const std::string& _msg)
+        void info(const std::string& _module, const std::string& _message)
         {
             std::string level = "INFO";
-            std::string line = makeLogLine(level, _mod, _msg);
+            std::string line = makeLogLine(level, _module, _message);
             if (m_consoleLogLevel <= L_INFO)
             {
                 consoleLog(line);
@@ -283,18 +287,18 @@ namespace Logging
         /**
          * Log INFO level messages
          */
-        void info(const std::wstring& _mod, const std::wstring& _msg)
+        void info(const std::wstring& _module, const std::wstring& _message)
         {
-            info(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
+            info(m_convU8.to_bytes(_module), m_convU8.to_bytes(_message));
         }
 
         /**
          * Log NOTICE level messages
          */
-        void notice(const std::string& _mod, const std::string& _msg)
+        void notice(const std::string& _module, const std::string& _message)
         {
             std::string level = "NOTICE";
-            std::string line = makeLogLine(level, _mod, _msg);
+            std::string line = makeLogLine(level, _module, _message);
             if (m_consoleLogLevel <= L_NOTICE)
             {
                 consoleLog(line);
@@ -308,18 +312,18 @@ namespace Logging
         /**
          * Log NOTICE level messages
          */
-        void notice(const std::wstring& _mod, const std::wstring& _msg)
+        void notice(const std::wstring& _module, const std::wstring& _message)
         {
-            notice(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
+            notice(m_convU8.to_bytes(_module), m_convU8.to_bytes(_message));
         }
 
         /**
          * Log WARNING level messages
          */
-        void warning(const std::string& _mod, const std::string& _msg)
+        void warning(const std::string& _module, const std::string& _message)
         {
             std::string level = "WARNING";
-            std::string line = makeLogLine(level, _mod, _msg);
+            std::string line = makeLogLine(level, _module, _message);
             if (m_consoleLogLevel <= L_WARNING)
             {
                 consoleLog(line);
@@ -333,18 +337,18 @@ namespace Logging
         /**
          * Log WARNING level messages
          */
-        void warning(const std::wstring& _mod, const std::wstring& _msg)
+        void warning(const std::wstring& _module, const std::wstring& _message)
         {
-            warning(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
+            warning(m_convU8.to_bytes(_module), m_convU8.to_bytes(_message));
         }
 
         /**
          * Log ERROR level messages
          */
-        void error(const std::string& _mod, const std::string& _msg)
+        void error(const std::string& _module, const std::string& _message)
         {
             std::string level = "ERROR";
-            std::string line = makeLogLine(level, _mod, _msg);
+            std::string line = makeLogLine(level, _module, _message);
             if (m_consoleLogLevel <= L_ERROR)
             {
                 consoleLog(line);
@@ -358,18 +362,18 @@ namespace Logging
         /**
          * Log ERROR level messages
          */
-        void error(const std::wstring& _mod, const std::wstring& _msg)
+        void error(const std::wstring& _module, const std::wstring& _message)
         {
-            error(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
+            error(m_convU8.to_bytes(_module), m_convU8.to_bytes(_message));
         }
 
         /**
          * Log CRITICAL level messages
          */
-        void critical(const std::string& _mod, const std::string& _msg)
+        void critical(const std::string& _module, const std::string& _message)
         {
             std::string level = "CRITICAL";
-            std::string line = makeLogLine(level, _mod, _msg);
+            std::string line = makeLogLine(level, _module, _message);
             if (m_consoleLogLevel <= L_CRITICAL)
             {
                 consoleLog(line);
@@ -383,9 +387,9 @@ namespace Logging
         /**
          * Log CRITICAL level messages
          */
-        void critical(const std::wstring& _mod, const std::wstring& _msg)
+        void critical(const std::wstring& _module, const std::wstring& _message)
         {
-            critical(m_convU8.to_bytes(_mod), m_convU8.to_bytes(_msg));
+            critical(m_convU8.to_bytes(_module), m_convU8.to_bytes(_message));
         }
 
     private:
@@ -425,10 +429,10 @@ namespace Logging
          * Create a common format log line
          * Note: There might be a better way to produce UTF8 from ANSI text? This is "expensive".
          */
-        inline  std::string makeLogLine(const std::string& _level, const std::string& _module, const std::string& _message)
+        inline std::string makeLogLine(const std::string& _level, const std::string& _moduleule, const std::string& _message)
         {
             std::stringstream ss;
-            ss << "" << currentDateTime() << "  <" << _level << ">  " + _module + ":  " << _message << std::endl;
+            ss << "" << currentDateTime() << "  <" << _level << ">  " + _moduleule + ":  " << _message << std::endl;
             std::string ansi_s = ss.str();
         #ifdef _WIN32
             std::wstring utf16_s = m_winConverter.from_bytes(ansi_s);
