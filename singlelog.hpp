@@ -1,557 +1,500 @@
-/******************************************************************************* 
-* Copyright (c) 2016 James Chapman
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-********************************************************************************/
+/*******************************************************************************
+ * Copyright (c) 2016 James Chapman
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright Notice and this permission Notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ********************************************************************************/
 
 #pragma once
-#ifndef SINGLELOG_HPP
-#define SINGLELOG_HPP
 
 #include <atomic>
 #include <codecvt>
-#include <locale>
+#include <ctime>
 #include <deque>
 #include <fstream>
-#include <iostream>
 #include <iomanip>
-#include <string>
-#include <sstream>
+#include <iostream>
+#include <locale>
 #include <mutex>
-#include <ctime>
+#include <sstream>
+#include <string>
 #include <thread>
-
-#ifdef _WIN32
-#include <Windows.h>
-#endif
-
 
 namespace Uplinkzero
 {
-    
-namespace Logging
-{
-        
-    /**
-    * Wrapper class to handle locking on various platforms because
-    * Critical Sections are preferable on Windows
-    */
-    class ScopedLogLock
+
+    namespace
     {
-    public:
-    #ifdef _WIN32
-        explicit ScopedLogLock(CRITICAL_SECTION * _cs)
+        // C++11 format converter
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> utfConverter;
+
+        std::string ToUTF8(const std::wstring &inString)
         {
-            m_lock = _cs;
-            EnterCriticalSection(m_lock);
+            return utfConverter.to_bytes(inString);
         }
-        ~ScopedLogLock()
+
+        std::wstring ToUTF16(const std::string &inString)
         {
-            LeaveCriticalSection(m_lock);
-            m_lock = nullptr;
+            return utfConverter.from_bytes(inString);
         }
-    #else
-        explicit ScopedLogLock(std::mutex * _mtx)
-        {
-            m_lock = _mtx;
-            m_lock->lock();
-        }
-        ~ScopedLogLock()
-        {
-            m_lock->unlock();
-            m_lock = nullptr;
-        }
-    #endif
-    private:
-    #ifdef _WIN32
-        CRITICAL_SECTION * m_lock;
-    #else
-        std::mutex * m_lock;
-    #endif
-    };
-
-
-    /**
-     * Levels of logging available
-     */
-    typedef enum _LogLevel
-    {
-        L_TRACE = 100,
-        L_DEBUG = 200,
-        L_INFO = 300,
-        L_NOTICE = 400,
-        L_WARNING = 500,
-        L_ERROR = 600,
-        L_CRITICAL = 700,
-        L_OFF = 1000
-    } LogLevel;
-
-
-    /**
-     * string <--> wstring converter
-     * C++11
-     */
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> g_converter;
-
-
-    /**
-     * Get current date/time, format is YYYY-MM-DD HH:mm:ss
-     * ref: http://en.cppreference.com/w/cpp/chrono/c/wcsftime
-     */
-    inline std::string currentDateTime()
-    {
-        std::stringstream ss;
-        std::time_t t = std::time(nullptr);
-        ss << std::put_time(std::localtime(&t), "%F %T");
-        return ss.str();
     }
 
-
-    /**
-     * Get current date/time, format is YYYY-MM-DD HH:mm:ss
-     * ref: http://en.cppreference.com/w/cpp/chrono/c/wcsftime
-     */
-    inline std::wstring currentDateTimeW()
+    namespace Logging
     {
-        std::string dateTimeSz = currentDateTime();
-        return g_converter.from_bytes(dateTimeSz);
+        /**
+         * Levels of logging available
+         */
+        enum class LogLevel
+        {
+            L_TRACE = 100,
+            L_DEBUG = 200,
+            L_INFO = 300,
+            L_NOTICE = 400,
+            L_WARNING = 500,
+            L_ERROR = 600,
+            L_CRITICAL = 700,
+            L_OFF = 1000
+        };
+
+        /**
+         * Get current date/time, format is YYYY-MM-DD HH:mm:ss
+         * ref: http://en.cppreference.com/w/cpp/chrono/c/wcsftime
+         */
+        std::string CurrentDateTime()
+        {
+            auto now = std::chrono::system_clock::now();
+            std::time_t tt = std::chrono::system_clock::to_time_t(now);
+            char timedisplay[100];
+            struct tm buf;
+            errno_t err = localtime_s(&buf, &tt);
+            if (std::strftime(timedisplay, sizeof(timedisplay), "%F %T", &buf))
+            {
+                return timedisplay;
+            }
+            return "";
+        }
+
+        /**
+         * Get current date/time, format is YYYY-MM-DD HH:mm:ss
+         * ref: http://en.cppreference.com/w/cpp/chrono/c/wcsftime
+         */
+        std::wstring CurrentDateTimeW()
+        {
+            return ToUTF16(CurrentDateTime());
+        }
+
+        /**
+         * Logger class
+         */
+        class SingleLog
+        {
+        public:
+            /**
+             * Return a reference to the instance of this class
+             * C++11 handles thread safety and removes the need for manual locking
+             * http://stackoverflow.com/questions/8102125/is-local-static-variable-initialization-thread-safe-in-c11
+             * http://stackoverflow.com/questions/33114896/reentrancy-in-static-method-with-static-variable
+             */
+            static SingleLog *GetInstance()
+            {
+                static SingleLog instance;
+                return &instance;
+            }
+
+            /**
+             * Destructor
+             */
+            ~SingleLog()
+            {
+                if (!m_exit.load())
+                {
+                    m_exit.store(true);
+                    m_consoleWriter.join();
+                    m_fstreamWriter.join();
+                }
+                if (m_fileOut.is_open())
+                {
+                    m_fileOut << "\n\n";
+                    m_fileOut.close();
+                }
+            }
+
+            /**
+             * Set the minimum log level for the console
+             * L_TRACE, L_DEBUG, L_INFO, L_NOTICE, L_WARNING, ERROR, L_CRITICAL, L_OFF
+             */
+            void SetConsoleLogLevel(const LogLevel &logLevel)
+            {
+                m_consoleLogLevel = logLevel;
+            }
+
+            /**
+             * Set the minimum log level for the log file
+             * L_TRACE, L_DEBUG, L_INFO, L_NOTICE, L_WARNING, ERROR, L_CRITICAL, L_OFF
+             */
+            void SetFileLogLevel(const LogLevel &logLevel)
+            {
+                m_fileLogLevel = logLevel;
+            }
+
+            /**
+             * Set the path to the log file
+             */
+            void SetLogFilePath(const std::string &filePath)
+            {
+                m_filePath = filePath;
+                m_fileOut.open(m_filePath, std::ios_base::out);
+            }
+
+            /**
+             * Set the path to the log file
+             */
+            void SetLogFilePath(const std::wstring &filePath)
+            {
+                SetLogFilePath(ToUTF8(filePath));
+            }
+
+            /**
+             * Log the line to console and/or file
+             */
+            void LogIt(LogLevel level, const std::string &line)
+            {
+                if (m_consoleLogLevel <= level)
+                {
+                    ConsoleLog(line);
+                }
+                if ((m_fileLogLevel <= level) && (m_fileOut.is_open()))
+                {
+                    FileLog(line);
+                }
+            }
+
+            /**
+             * Log TRACE level messages
+             */
+            void Trace(const std::string &_module, const std::string &_message)
+            {
+                std::string level = "TRACE";
+                LogIt(LogLevel::L_TRACE, MakeLogLine(level, _module, _message));
+            }
+
+            /**
+             * Log TRACE level messages
+             */
+            void Trace(const std::wstring &_module, const std::wstring &_message)
+            {
+                std::wstring level = L"TRACE";
+                LogIt(LogLevel::L_TRACE, MakeLogLine(level, _module, _message));
+            }
+
+            /**
+             * Log DEBUG level messages
+             */
+            void Debug(const std::string &_module, const std::string &_message)
+            {
+                std::string level = "DEBUG";
+                LogIt(LogLevel::L_DEBUG, MakeLogLine(level, _module, _message));
+            }
+
+            /**
+             * Log DEBUG level messages
+             */
+            void Debug(const std::wstring &_module, const std::wstring &_message)
+            {
+                std::wstring level = L"DEBUG";
+                LogIt(LogLevel::L_DEBUG, MakeLogLine(level, _module, _message));
+            }
+
+            /**
+             * Log INFO level messages
+             */
+            void Info(const std::string &_module, const std::string &_message)
+            {
+                std::string level = "INFO";
+                LogIt(LogLevel::L_INFO, MakeLogLine(level, _module, _message));
+            }
+
+            /**
+             * Log INFO level messages
+             */
+            void Info(const std::wstring &_module, const std::wstring &_message)
+            {
+                std::wstring level = L"INFO";
+                LogIt(LogLevel::L_INFO, MakeLogLine(level, _module, _message));
+            }
+
+            /**
+             * Log NOTICE level messages
+             */
+            void Notice(const std::string &_module, const std::string &_message)
+            {
+                std::string level = "NOTICE";
+                LogIt(LogLevel::L_NOTICE, MakeLogLine(level, _module, _message));
+            }
+
+            /**
+             * Log NOTICE level messages
+             */
+            void Notice(const std::wstring &_module, const std::wstring &_message)
+            {
+                std::wstring level = L"NOTICE";
+                LogIt(LogLevel::L_NOTICE, MakeLogLine(level, _module, _message));
+            }
+
+            /**
+             * Log WARNING level messages
+             */
+            void Warning(const std::string &_module, const std::string &_message)
+            {
+                std::string level = "WARNING";
+                LogIt(LogLevel::L_WARNING, MakeLogLine(level, _module, _message));
+            }
+
+            /**
+             * Log WARNING level messages
+             */
+            void Warning(const std::wstring &_module, const std::wstring &_message)
+            {
+                std::wstring level = L"WARNING";
+                LogIt(LogLevel::L_WARNING, MakeLogLine(level, _module, _message));
+            }
+
+            /**
+             * Log ERROR level messages
+             */
+            void Error(const std::string &_module, const std::string &_message)
+            {
+                std::string level = "ERROR";
+                LogIt(LogLevel::L_ERROR, MakeLogLine(level, _module, _message));
+            }
+
+            /**
+             * Log ERROR level messages
+             */
+            void Error(const std::wstring &_module, const std::wstring &_message)
+            {
+                std::wstring level = L"ERROR";
+                LogIt(LogLevel::L_ERROR, MakeLogLine(level, _module, _message));
+            }
+
+            /**
+             * Log CRITICAL level messages
+             */
+            void Critical(const std::string &_module, const std::string &_message)
+            {
+                std::string level = "CRITICAL";
+                LogIt(LogLevel::L_CRITICAL, MakeLogLine(level, _module, _message));
+            }
+
+            /**
+             * Log CRITICAL level messages
+             */
+            void Critical(const std::wstring &_module, const std::wstring &_message)
+            {
+                std::wstring level = L"CRITICAL";
+                LogIt(LogLevel::L_CRITICAL, MakeLogLine(level, _module, _message));
+            }
+
+        private:
+            /**
+             * Private Constructor
+             */
+            SingleLog()
+                : m_consoleLogLevel(LogLevel::L_TRACE), m_fileLogLevel(LogLevel::L_TRACE), m_filePath(""), m_exit(false)
+            {
+                m_consoleWriter = std::thread(&SingleLog::ConsoleWriter, this);
+                m_fstreamWriter = std::thread(&SingleLog::FstreamWriter, this);
+            }
+
+            /**
+             * Copy constructor, we don't want it since this is a Singleton
+             */
+            SingleLog(SingleLog const &copy) = delete;
+            SingleLog &operator=(SingleLog const &copy) = delete;
+
+            /**
+             * Create a common format log line
+             * Note: There might be a better way to produce UTF8 from ANSI text? This is "expensive".
+             */
+            inline std::string MakeLogLine(const std::string &_level, const std::string &_module, const std::string &_message)
+            {
+                std::stringstream ss;
+                ss << u8"" << CurrentDateTime() << u8"  <" << _level << u8">  " + _module + u8":  " << _message << u8"\n";
+                return ss.str();
+            }
+
+            inline std::string MakeLogLine(const std::wstring &_level, const std::wstring &_module, const std::wstring &_message)
+            {
+                std::wstringstream ss;
+                ss << L"" << CurrentDateTimeW() << L"  <" << _level << L">  " + _module + L":  " << _message << L"\n";
+                return ToUTF8(ss.str());
+            }
+
+            /**
+             * Log message to console deque
+             */
+            inline void ConsoleLog(std::string _s)
+            {
+                std::lock_guard<std::mutex> lock(m_consoleLogDequeLock);
+                m_consoleLogDeque.push_back(_s);
+            }
+
+            /**
+             * Log message to file deque
+             */
+            inline void FileLog(std::string _s)
+            {
+                std::lock_guard<std::mutex> lock(m_fstreamLogDequeLock);
+                m_fstreamLogDeque.push_back(_s);
+            }
+
+            /**
+             * Write messages to the console.
+             */
+            void ConsoleWriter()
+            {
+                //
+                while (1)
+                {
+                    bool consoleLogEmpty = m_consoleLogDeque.empty();
+                    if (!consoleLogEmpty)
+                    {
+                        std::lock_guard<std::mutex> lock(m_consoleLogDequeLock);
+                        std::string s = m_consoleLogDeque.front();
+                        m_consoleLogDeque.pop_front();
+                        std::cout << s;
+                    }
+
+                    if ((m_exit.load()) && (consoleLogEmpty))
+                    {
+                        break;
+                    }
+
+                    // Short sleep to avoid consuming high CPU
+                    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                }
+            }
+
+            /**
+             * Write messages to the log file.
+             */
+            void FstreamWriter()
+            {
+                //
+                while (1)
+                {
+                    bool fstreamLogEmpty = m_fstreamLogDeque.empty();
+                    if (!fstreamLogEmpty)
+                    {
+                        std::string s;
+                        {
+                            std::lock_guard<std::mutex> lock(m_fstreamLogDequeLock);
+                            s = m_fstreamLogDeque.front();
+                            m_fstreamLogDeque.pop_front();
+                        }
+                        {
+                            std::lock_guard<std::mutex> lock(m_fstreamLock);
+                            m_fileOut.flush();
+                            m_fileOut << s;
+                        }
+                    }
+
+                    if ((m_exit.load()) && (fstreamLogEmpty))
+                    {
+                        break;
+                    }
+
+                    // Short sleep to avoid consuming high CPU
+                    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                }
+            }
+
+            LogLevel m_consoleLogLevel; // Min level for console logs
+            LogLevel m_fileLogLevel;    // Min level for file logs
+            std::ofstream m_fileOut;    // File output stream
+            std::string m_filePath;     // Log file path
+
+            std::mutex m_consoleLogDequeLock;
+            std::mutex m_fstreamLogDequeLock;
+            std::mutex m_fstreamLock;
+
+            std::deque<std::string> m_consoleLogDeque;
+            std::deque<std::string> m_fstreamLogDeque;
+
+            std::atomic_bool m_exit;
+
+            std::thread m_consoleWriter;
+            std::thread m_fstreamWriter;
+        };
+
+    }; // namespace Logging
+
+    namespace
+    {
+        auto __globalLoggerPtr = Uplinkzero::Logging::SingleLog::GetInstance();
+
+        class FunctionTrace
+        {
+        public:
+            FunctionTrace(const std::string &functionName)
+                : m_functionName{functionName}
+            {
+                Uplinkzero::Logging::SingleLog *m_logger = Uplinkzero::Logging::SingleLog::GetInstance();
+                std::stringstream ss;
+                ss << " ---> Entering function: " << m_functionName;
+                __globalLoggerPtr->Trace("FunctionTrace", ss.str());
+            }
+
+            ~FunctionTrace()
+            {
+                std::stringstream ss;
+                ss << " <--- Exiting function: " << m_functionName;
+                __globalLoggerPtr->Trace("FunctionTrace", ss.str());
+            }
+
+        private:
+            std::string m_functionName;
+        };
     }
 
+#define LOG_TRACE_FUNCTION() \
+    Uplinkzero::FunctionTrace tr(__func__);
 
+#define LOG_TRACE(module, message) \
+    Uplinkzero::__globalLoggerPtr->Trace(module, message);
 
-    /**
-     * Logger class
-     */
-    class SingleLog
-    {
-    public:
-        /**
-         * Return a reference to the instance of this class
-         * C++11 handles thread safety and removes the need for manual locking
-         * http://stackoverflow.com/questions/8102125/is-local-static-variable-initialization-thread-safe-in-c11
-         * http://stackoverflow.com/questions/33114896/reentrancy-in-static-method-with-static-variable
-         */
-        static SingleLog * getInstance()
-        {
-            static SingleLog instance;
-            return &instance;
-        }
+#define LOG_DEBUG(module, message) \
+    Uplinkzero::__globalLoggerPtr->Debug(module, message);
 
-        /**
-         * Destructor
-         */
-        ~SingleLog()
-        {
-            if (!m_exit.load())
-            {
-                m_exit.store(true);
-                m_consoleWriter.join();
-                m_fstreamWriter.join();
-            }
-            if (m_fileOut.is_open())
-            {
-                m_fileOut << "\n\n";
-                m_fileOut.close();
-            }
-        #ifdef _WIN32
-            DeleteCriticalSection(&m_consoleLogDequeLock);
-            DeleteCriticalSection(&m_fstreamLogDequeLock);
-            DeleteCriticalSection(&m_fstreamLock);
-        #endif
-        }
+#define LOG_INFO(module, message) \
+    Uplinkzero::__globalLoggerPtr->Info(module, message);
 
-        /**
-         * Set the minimum log level for the console
-         * L_TRACE, L_DEBUG, L_INFO, L_NOTICE, L_WARNING, ERROR, L_CRITICAL, L_OFF
-         */
-        void setConsoleLogLevel(const LogLevel& _logLevel)
-        {
-            m_consoleLogLevel = _logLevel;
-        }
+#define LOG_NOTICE(module, message) \
+    Uplinkzero::__globalLoggerPtr->Notice(module, message);
 
-        /**
-         * Set the minimum log level for the log file
-         * L_TRACE, L_DEBUG, L_INFO, L_NOTICE, L_WARNING, ERROR, L_CRITICAL, L_OFF
-         */
-        void setFileLogLevel(const LogLevel& _logLevel)
-        {
-            m_fileLogLevel = _logLevel;
-        }
+#define LOG_WARNING(module, message) \
+    Uplinkzero::__globalLoggerPtr->Warning(module, message);
 
-        /**
-        * Set the path to the log file
-        */
-        void setLogFilePath(const std::string& _filePath)
-        {
-            m_filePath = _filePath;
-            m_fileOut.open(m_filePath, std::ios_base::out);
-        }
+#define LOG_ERROR(module, message) \
+    Uplinkzero::__globalLoggerPtr->Error(module, message);
 
-        /**
-         * Set the path to the log file
-         */
-        void setLogFilePath(const std::wstring& _filePath)
-        {
-            setLogFilePath(m_convU8.to_bytes(_filePath));
-        }
-
-        /**
-         * Log TRACE level messages
-         */
-    #ifdef _DEBUG
-        void trace(const std::string& _module, const std::string& _message)
-        {
-            std::string level = "TRACE";
-            std::string line = makeLogLine(level, _module, _message);
-            if (m_consoleLogLevel <= L_TRACE)
-            {
-                consoleLog(line);
-            }
-            if ((m_fileLogLevel <= L_TRACE) && (m_fileOut.is_open()))
-            {
-                fileLog(line);
-            }
-        }
-    #else
-        void trace(const std::string& _module, const std::string& _message)
-        {}
-    #endif
-
-        /**
-         * Log TRACE level messages
-         */
-        void trace(const std::wstring& _module, const std::wstring& _message)
-        {
-            trace(m_convU8.to_bytes(_module), m_convU8.to_bytes(_message));
-        }
-
-        /**
-         * Log DEBUG level messages
-         */
-        void debug(const std::string& _module, const std::string& _message)
-        {
-            std::string level = "DEBUG";
-            std::string line = makeLogLine(level, _module, _message);
-            if (m_consoleLogLevel <= L_DEBUG)
-            {
-                consoleLog(line);
-            }
-            if ((m_fileLogLevel <= L_DEBUG) && (m_fileOut.is_open()))
-            {
-                fileLog(line);
-            }
-        }
-
-        /**
-         * Log DEBUG level messages
-         */
-        void debug(const std::wstring& _module, const std::wstring& _message)
-        {
-            debug(m_convU8.to_bytes(_module), m_convU8.to_bytes(_message));
-        }
-
-        /**
-         * Log INFO level messages
-         */
-        void info(const std::string& _module, const std::string& _message)
-        {
-            std::string level = "INFO";
-            std::string line = makeLogLine(level, _module, _message);
-            if (m_consoleLogLevel <= L_INFO)
-            {
-                consoleLog(line);
-            }
-            if ((m_fileLogLevel <= L_INFO) && (m_fileOut.is_open()))
-            {
-                fileLog(line);
-            }
-        }
-
-        /**
-         * Log INFO level messages
-         */
-        void info(const std::wstring& _module, const std::wstring& _message)
-        {
-            info(m_convU8.to_bytes(_module), m_convU8.to_bytes(_message));
-        }
-
-        /**
-         * Log NOTICE level messages
-         */
-        void notice(const std::string& _module, const std::string& _message)
-        {
-            std::string level = "NOTICE";
-            std::string line = makeLogLine(level, _module, _message);
-            if (m_consoleLogLevel <= L_NOTICE)
-            {
-                consoleLog(line);
-            }
-            if ((m_fileLogLevel <= L_NOTICE) && (m_fileOut.is_open()))
-            {
-                fileLog(line);
-            }
-        }
-
-        /**
-         * Log NOTICE level messages
-         */
-        void notice(const std::wstring& _module, const std::wstring& _message)
-        {
-            notice(m_convU8.to_bytes(_module), m_convU8.to_bytes(_message));
-        }
-
-        /**
-         * Log WARNING level messages
-         */
-        void warning(const std::string& _module, const std::string& _message)
-        {
-            std::string level = "WARNING";
-            std::string line = makeLogLine(level, _module, _message);
-            if (m_consoleLogLevel <= L_WARNING)
-            {
-                consoleLog(line);
-            }
-            if ((m_fileLogLevel <= L_WARNING) && (m_fileOut.is_open()))
-            {
-                fileLog(line);
-            }
-        }
-
-        /**
-         * Log WARNING level messages
-         */
-        void warning(const std::wstring& _module, const std::wstring& _message)
-        {
-            warning(m_convU8.to_bytes(_module), m_convU8.to_bytes(_message));
-        }
-
-        /**
-         * Log ERROR level messages
-         */
-        void error(const std::string& _module, const std::string& _message)
-        {
-            std::string level = "ERROR";
-            std::string line = makeLogLine(level, _module, _message);
-            if (m_consoleLogLevel <= L_ERROR)
-            {
-                consoleLog(line);
-            }
-            if ((m_fileLogLevel <= L_ERROR) && (m_fileOut.is_open()))
-            {
-                fileLog(line);
-            }
-        }
-
-        /**
-         * Log ERROR level messages
-         */
-        void error(const std::wstring& _module, const std::wstring& _message)
-        {
-            error(m_convU8.to_bytes(_module), m_convU8.to_bytes(_message));
-        }
-
-        /**
-         * Log CRITICAL level messages
-         */
-        void critical(const std::string& _module, const std::string& _message)
-        {
-            std::string level = "CRITICAL";
-            std::string line = makeLogLine(level, _module, _message);
-            if (m_consoleLogLevel <= L_CRITICAL)
-            {
-                consoleLog(line);
-            }
-            if ((m_fileLogLevel <= L_CRITICAL) && (m_fileOut.is_open()))
-            {
-                fileLog(line);
-            }
-        }
-
-        /**
-         * Log CRITICAL level messages
-         */
-        void critical(const std::wstring& _module, const std::wstring& _message)
-        {
-            critical(m_convU8.to_bytes(_module), m_convU8.to_bytes(_message));
-        }
-
-    private:
-        /**
-         * Private Constructor
-         */
-        SingleLog()
-                : m_consoleLogLevel(L_TRACE)
-                , m_fileLogLevel(L_TRACE)
-                , m_filePath("")
-                , m_exit(false)
-        {
-        #ifdef _WIN32
-            InitializeCriticalSection(&m_consoleLogDequeLock);
-            InitializeCriticalSection(&m_fstreamLogDequeLock);
-            InitializeCriticalSection(&m_fstreamLock);
-        #endif
-            m_consoleWriter = std::thread(&SingleLog::consoleWriter, this);
-            m_fstreamWriter = std::thread(&SingleLog::fstreamWriter, this);
-        }
-
-        /**
-         * Copy constructor, we don't want it since this is a Singleton
-         */
-        SingleLog(SingleLog const& copy) = delete;
-        SingleLog& operator=(SingleLog const& copy) = delete;
-
-        /**
-         * string <--> wstring converter
-         * C++11
-         */
-         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> m_winConverter;
-         std::wstring_convert<std::codecvt_utf8<wchar_t>> m_convU8;
-         std::wstring_convert<std::codecvt_utf16<wchar_t>> m_convU16;
-
-        /**
-         * Create a common format log line
-         * Note: There might be a better way to produce UTF8 from ANSI text? This is "expensive".
-         */
-        inline std::string makeLogLine(const std::string& _level, const std::string& _moduleule, const std::string& _message)
-        {
-            std::stringstream ss;
-            ss << "" << currentDateTime() << "  <" << _level << ">  " + _moduleule + ":  " << _message << std::endl;
-            std::string ansi_s = ss.str();
-        #ifdef _WIN32
-            std::wstring utf16_s = m_winConverter.from_bytes(ansi_s);
-            std::string utf8_s = m_winConverter.to_bytes(utf16_s);
-        #else
-            std::wstring utf16_s = m_convU16.from_bytes(ansi_s);
-            std::string utf8_s = m_convU8.to_bytes(utf16_s);
-        #endif
-            return utf8_s; // return UTF-8
-        }
-
-        /**
-         * Log message to console deque
-         */
-        inline void consoleLog(std::string _s)
-        {
-            ScopedLogLock lock(&m_consoleLogDequeLock);
-            m_consoleLogDeque.push_back(_s);
-        }
-
-        /**
-         * Log message to file deque
-         */
-        inline void fileLog(std::string _s)
-        {
-            ScopedLogLock lock(&m_fstreamLogDequeLock);
-            m_fstreamLogDeque.push_back(_s);
-        }
-
-        /**
-         * Write messages to the console.
-         */
-        void consoleWriter()
-        {
-            //
-            while (1)
-            {
-                bool consoleLogEmpty = m_consoleLogDeque.empty();
-                if (!consoleLogEmpty)
-                {
-                    ScopedLogLock lock(&m_consoleLogDequeLock);
-                    std::string s = m_consoleLogDeque.front();
-                    m_consoleLogDeque.pop_front();
-                    std::cout << s;
-                }
-
-                if ((m_exit.load()) && (consoleLogEmpty))
-                {
-                    break;
-                }
-
-                // Sleep, otherwise this loop just eats CPU cycles for breakfast
-                std::this_thread::sleep_for(std::chrono::milliseconds(50));
-            }
-
-        }
-
-        /**
-         * Write messages to the log file.
-         */
-        void fstreamWriter()
-        {
-            //
-            while (1)
-            {
-                bool fstreamLogEmpty = m_fstreamLogDeque.empty();
-                if (!fstreamLogEmpty)
-                {
-                    std::string s;
-                    {
-                        ScopedLogLock lock(&m_fstreamLogDequeLock);
-                        s = m_fstreamLogDeque.front();
-                        m_fstreamLogDeque.pop_front();
-                    }
-                    {
-                        ScopedLogLock lock(&m_fstreamLock);
-                        m_fileOut.flush();
-                        m_fileOut << s;
-                    }
-                }
-
-                if ((m_exit.load()) && (fstreamLogEmpty))
-                {
-                    break;
-                }
-
-                // Sleep, otherwise this loop just eats CPU cycles for breakfast
-                std::this_thread::sleep_for(std::chrono::milliseconds(50));
-            }
-        }
-
-         LogLevel         m_consoleLogLevel; // Min level for console logs
-         LogLevel         m_fileLogLevel;    // Min level for file logs
-         std::ofstream    m_fileOut;         // File output stream
-         std::string      m_filePath;        // Log file path
-
-    #ifdef _WIN32
-        CRITICAL_SECTION m_consoleLogDequeLock;
-        CRITICAL_SECTION m_fstreamLogDequeLock;
-        CRITICAL_SECTION m_fstreamLock;
-    #else
-        std::mutex m_consoleLogDequeLock;
-        std::mutex m_fstreamLogDequeLock;
-        std::mutex m_fstreamLock;
-    #endif
-
-         std::deque<std::string> m_consoleLogDeque;
-         std::deque<std::string> m_fstreamLogDeque;
-
-         std::atomic_bool m_exit;
-
-         std::thread m_consoleWriter;
-         std::thread m_fstreamWriter;
-    };
-    
-}; // namespace Logging
+#define LOG_CRITICAL(module, message) \
+    Uplinkzero::__globalLoggerPtr->Critical(module, message);
 
 }; // namespace Uplinkzero
-
-
-#endif // SINGLELOG_HPP
-

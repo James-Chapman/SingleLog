@@ -1,7 +1,17 @@
 import os
-env = Environment(ENV = {'PATH' : os.environ['PATH'],
-                         'HOME' : os.environ['HOME']})
+import platform
 
-env['CXX'] = 'g++'
+env = Environment()
+env['SYSTEM'] = platform.system().lower()
+env['PATH'] = os.environ['PATH']
+env['TARGET_ARCH']='x86_64'
+
+if env['SYSTEM'] == 'windows':
+    env['MSVC_VERSION']='14.2'
+    env.Append( CCFLAGS=["/EHsc"] )
+
+if env['SYSTEM'] in ['linux', 'darwin']:
+    env['CXX'] = 'g++'
+    env.Append( CCFLAGS=["-g"] )
 
 env.Program('SingleLogExample', 'example.cpp')

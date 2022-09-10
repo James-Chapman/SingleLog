@@ -21,41 +21,66 @@
 *
 ********************************************************************************/
 
-#include <string>
 #include "singlelog.hpp"
 
-void threadFunc()
+// Configure the logger
+void SetupLogging()
 {
-    Uplinkzero::Logging::SingleLog * pLogger = Uplinkzero::Logging::SingleLog::getInstance();
-    std::string module = "thread";
-    pLogger->critical(module, "Critial message");
-    pLogger->error(module, "Error message");
-    pLogger->warning(module, "Warning message");
-    pLogger->notice(module, "Notice message");
-    pLogger->info(module, "Info message");
-    pLogger->debug(module, "Debug message");
-    pLogger->trace(module, "Trace message");
+	Uplinkzero::Logging::SingleLog * pLogger = Uplinkzero::Logging::SingleLog::GetInstance();
+    pLogger->SetConsoleLogLevel(Uplinkzero::Logging::LogLevel::L_INFO);
+    pLogger->SetFileLogLevel(Uplinkzero::Logging::LogLevel::L_TRACE);
+    pLogger->SetLogFilePath("example.log");
+}
+
+// Logging via a local pointer
+void LocalPointerLogging()
+{
+    std::string module = "Local Pointer Logging";
+	Uplinkzero::Logging::SingleLog * pLogger = Uplinkzero::Logging::SingleLog::GetInstance();
+    pLogger->Critical(module, "Critial message");
+    pLogger->Error(module, "Error message");
+    pLogger->Warning(module, "Warning message");
+    pLogger->Notice(module, "Notice message");
+    pLogger->Info(module, "Info message");
+    pLogger->Debug(module, "Debug message");
+    pLogger->Trace(module, "Trace message");
+}
+
+// Logging directly via the "global" logging pointer.
+void GlobalPointerLogging()
+{
+    std::string module = "Global Pointer Logging";
+    Uplinkzero::__globalLoggerPtr->Critical(module, "Critial message");
+    Uplinkzero::__globalLoggerPtr->Error(module, "Error message");
+    Uplinkzero::__globalLoggerPtr->Warning(module, "Warning message");
+    Uplinkzero::__globalLoggerPtr->Notice(module, "Notice message");
+    Uplinkzero::__globalLoggerPtr->Info(module, "Info message");
+    Uplinkzero::__globalLoggerPtr->Debug(module, "Debug message");
+    Uplinkzero::__globalLoggerPtr->Trace(module, "Trace message");
+}
+
+// Recommended logging option
+void MacroLogging()
+{
+    std::string module = "MACRO thread";
+    LOG_TRACE_FUNCTION();
+    LOG_CRITICAL(module, "Critial message");
+    LOG_ERROR(module, "Error message");
+    LOG_WARNING(module, "Warning message");
+    LOG_NOTICE(module, "Notice message");
+    LOG_INFO(module, "Info message");
+    LOG_DEBUG(module, "Debug message");
+    LOG_TRACE(module, "Trace message");
 }
 
 int main()
 {
-    Uplinkzero::Logging::SingleLog * pLogger = Uplinkzero::Logging::SingleLog::getInstance();
-    std::string module = "main";
-    pLogger->setConsoleLogLevel(Uplinkzero::Logging::L_INFO);
-    pLogger->setFileLogLevel(Uplinkzero::Logging::L_TRACE);
-    pLogger->setLogFilePath("example.log");
-
-    std::thread t1(threadFunc);
-
-    pLogger->critical(module, "Critial message");
-    pLogger->error(module, "Error message");
-    pLogger->warning(module, "Warning message");
-    pLogger->notice(module, "Notice message");
-    pLogger->info(module, "Info message");
-    pLogger->debug(module, "Debug message");
-    pLogger->trace(module, "Trace message");
-
+	SetupLogging();
+    std::thread t1(LocalPointerLogging);
+	std::thread t2(GlobalPointerLogging);
+    std::thread t3(MacroLogging);
     t1.join();
-
+    t2.join();
+    t3.join();
     return 0;
 }
