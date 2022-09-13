@@ -26,7 +26,7 @@
 // Configure the logger
 void SetupLogging()
 {
-	Uplinkzero::Logging::SingleLog * pLogger = Uplinkzero::Logging::SingleLog::GetInstance();
+    Uplinkzero::Logging::SingleLog * pLogger = Uplinkzero::Logging::SingleLog::GetInstance();
     pLogger->SetConsoleLogLevel(Uplinkzero::Logging::LogLevel::L_INFO);
     pLogger->SetFileLogLevel(Uplinkzero::Logging::LogLevel::L_TRACE);
     pLogger->SetLogFilePath("example.log");
@@ -35,8 +35,8 @@ void SetupLogging()
 // Logging via a local pointer
 void LocalPointerLogging()
 {
-    std::string module = "Local Pointer Logging";
-	Uplinkzero::Logging::SingleLog * pLogger = Uplinkzero::Logging::SingleLog::GetInstance();
+    std::string module = "Local pointer thread";
+    Uplinkzero::Logging::SingleLog * pLogger = Uplinkzero::Logging::SingleLog::GetInstance();
     pLogger->Critical(module, "Critial message");
     pLogger->Error(module, "Error message");
     pLogger->Warning(module, "Warning message");
@@ -46,20 +46,7 @@ void LocalPointerLogging()
     pLogger->Trace(module, "Trace message");
 }
 
-// Logging directly via the "global" logging pointer.
-void GlobalPointerLogging()
-{
-    std::string module = "Global Pointer Logging";
-    Uplinkzero::__globalLoggerPtr->Critical(module, "Critial message");
-    Uplinkzero::__globalLoggerPtr->Error(module, "Error message");
-    Uplinkzero::__globalLoggerPtr->Warning(module, "Warning message");
-    Uplinkzero::__globalLoggerPtr->Notice(module, "Notice message");
-    Uplinkzero::__globalLoggerPtr->Info(module, "Info message");
-    Uplinkzero::__globalLoggerPtr->Debug(module, "Debug message");
-    Uplinkzero::__globalLoggerPtr->Trace(module, "Trace message");
-}
-
-// Recommended logging option
+// Logging with macros. This is the recommended logging option.
 void MacroLogging()
 {
     std::string module = "MACRO thread";
@@ -75,12 +62,10 @@ void MacroLogging()
 
 int main()
 {
-	SetupLogging();
+    SetupLogging();
     std::thread t1(LocalPointerLogging);
-	std::thread t2(GlobalPointerLogging);
-    std::thread t3(MacroLogging);
+    std::thread t2(MacroLogging);
     t1.join();
     t2.join();
-    t3.join();
     return 0;
 }
