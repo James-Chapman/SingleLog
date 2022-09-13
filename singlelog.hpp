@@ -474,7 +474,7 @@ namespace Uplinkzero
     }
 
 #define LOG_TRACE_FUNCTION() \
-    Uplinkzero::FunctionTrace tr(__func__);
+    Uplinkzero::FunctionTrace __functionTraceLog(__func__);
 
 #define LOG_TRACE(module, message) \
     Uplinkzero::__globalLoggerPtr->Trace(module, message);
