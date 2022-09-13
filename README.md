@@ -82,21 +82,21 @@ Which, when run will produce the following in the console:
 And the following in the log file **"example.log"**:
 
 ```
+2010-12-01 12:01:12  <TRACE>  FunctionTrace:   ---> Entering function: MacroLogging
 2010-12-01 12:01:12  <CRITICAL>  Local pointer thread:  Critial message
-2010-12-01 12:01:12  <TRACE>  MacroLogging:  Enter function
 2010-12-01 12:01:12  <ERROR>  Local pointer thread:  Error message
 2010-12-01 12:01:12  <CRITICAL>  MACRO thread:  Critial message
 2010-12-01 12:01:12  <WARNING>  Local pointer thread:  Warning message
-2010-12-01 12:01:12  <ERROR>  MACRO thread:  Error message
-2010-12-01 12:01:12  <WARNING>  MACRO thread:  Warning message
 2010-12-01 12:01:12  <NOTICE>  Local pointer thread:  Notice message
+2010-12-01 12:01:12  <ERROR>  MACRO thread:  Error message
+2010-12-01 12:01:12  <INFO>  Local pointer thread:  Info message
+2010-12-01 12:01:12  <WARNING>  MACRO thread:  Warning message
+2010-12-01 12:01:12  <DEBUG>  Local pointer thread:  Debug message
 2010-12-01 12:01:12  <NOTICE>  MACRO thread:  Notice message
+2010-12-01 12:01:12  <TRACE>  Local pointer thread:  Trace message
 2010-12-01 12:01:12  <INFO>  MACRO thread:  Info message
 2010-12-01 12:01:12  <DEBUG>  MACRO thread:  Debug message
 2010-12-01 12:01:12  <TRACE>  MACRO thread:  Trace message
-2010-12-01 12:01:12  <INFO>  Local pointer thread:  Info message
-2010-12-01 12:01:12  <TRACE>  MacroLogging:  Exit function
-2010-12-01 12:01:12  <DEBUG>  Local pointer thread:  Debug message
-2010-12-01 12:01:12  <TRACE>  Local pointer thread:  Trace message
+2010-12-01 12:01:12  <TRACE>  FunctionTrace:   <--- Exiting function: MacroLogging
 ```
 
