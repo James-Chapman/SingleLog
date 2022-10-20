@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016 James Chapman
+ * Copyright (c) 2016-2022 James Chapman
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -44,16 +44,47 @@ namespace Uplinkzero
         // C++11 format converter
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> utfConverter;
 
-        std::string ToUTF8(const std::wstring &inString)
+        std::string ToUTF8(const std::wstring& inString)
         {
             return utfConverter.to_bytes(inString);
         }
 
-        std::wstring ToUTF16(const std::string &inString)
+        std::wstring ToUTF16(const std::string& inString)
         {
             return utfConverter.from_bytes(inString);
         }
+    
+
+
+
+
+    /**
+     * Get current date/time, format is YYYY-MM-DD HH:mm:ss
+     * ref: http://en.cppreference.com/w/cpp/chrono/c/wcsftime
+     */
+    std::string CurrentDateTime()
+    {
+        auto now = std::chrono::system_clock::now();
+        std::time_t ttnow = std::chrono::system_clock::to_time_t(now);
+        char timedisplay[100];
+        struct tm buf;
+        errno_t err = localtime_s(&buf, &ttnow);
+        if (std::strftime(timedisplay, sizeof(timedisplay), "%F %T", &buf))
+        {
+            return timedisplay;
+        }
+        return "";
     }
+
+    /**
+     * Get current date/time, format is YYYY-MM-DD HH:mm:ss
+     * ref: http://en.cppreference.com/w/cpp/chrono/c/wcsftime
+     */
+    std::wstring CurrentDateTimeW()
+    {
+        return ToUTF16(CurrentDateTime());
+    }
+}
 
     namespace Logging
     {
@@ -71,33 +102,6 @@ namespace Uplinkzero
             L_CRITICAL = 700,
             L_OFF = 1000
         };
-
-        /**
-         * Get current date/time, format is YYYY-MM-DD HH:mm:ss
-         * ref: http://en.cppreference.com/w/cpp/chrono/c/wcsftime
-         */
-        std::string CurrentDateTime()
-        {
-            auto now = std::chrono::system_clock::now();
-            std::time_t tt = std::chrono::system_clock::to_time_t(now);
-            char timedisplay[100];
-            struct tm buf;
-            errno_t err = localtime_s(&buf, &tt);
-            if (std::strftime(timedisplay, sizeof(timedisplay), "%F %T", &buf))
-            {
-                return timedisplay;
-            }
-            return "";
-        }
-
-        /**
-         * Get current date/time, format is YYYY-MM-DD HH:mm:ss
-         * ref: http://en.cppreference.com/w/cpp/chrono/c/wcsftime
-         */
-        std::wstring CurrentDateTimeW()
-        {
-            return ToUTF16(CurrentDateTime());
-        }
 
         /**
          * Logger class
@@ -335,7 +339,7 @@ namespace Uplinkzero
             inline std::string MakeLogLine(const std::string &_level, const std::string &_module, const std::string &_message)
             {
                 std::stringstream ss;
-                ss << u8"" << CurrentDateTime() << u8"  <" << _level << u8">  " + _module + u8":  " << _message << u8"\n";
+                ss << "" << CurrentDateTime() << "  <" << _level << ">  " + _module + ":  " << _message << "\n";
                 return ss.str();
             }
 
@@ -474,7 +478,7 @@ namespace Uplinkzero
     }
 
 #define LOG_TRACE_FUNCTION() \
-    Uplinkzero::FunctionTrace __functionTraceLog(__func__);
+    Uplinkzero::FunctionTrace tr(__func__);
 
 #define LOG_TRACE(module, message) \
     Uplinkzero::__globalLoggerPtr->Trace(module, message);
