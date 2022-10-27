@@ -474,20 +474,57 @@ namespace
     };
 } // namespace
 
+namespace StringTools
+{
+    template <typename... Args>
+    std::string string_format(const std::string& format, Args&&... args)
+    {
+        auto size = std::snprintf(nullptr, 0, format.c_str(), std::forward<Args>(args)...) + 1; // Extra space for '\0'
+        if (size < 0)
+        {
+            return {};
+        }
+        std::unique_ptr<char[]> buffer = std::make_unique<char[]>(size);
+        std::snprintf(buffer.get(), size, format.c_str(), std::forward<Args>(args)...);
+        return std::string(buffer.get(), buffer.get() + size - 1); // We don't want the '\0' inside
+    }
+} // namespace StringTools
+
 #define LOG_TRACE_FUNCTION() Uplinkzero::FunctionTrace tr(__func__);
 
-#define LOG_TRACE(module, message) Uplinkzero::__globalLoggerPtr->Trace(module, message);
+#define LOG_TRACE(message) Uplinkzero::__globalLoggerPtr->Trace(__func__, message);
 
-#define LOG_DEBUG(module, message) Uplinkzero::__globalLoggerPtr->Debug(module, message);
+#define LOG_DEBUG(message) Uplinkzero::__globalLoggerPtr->Debug(__func__, message);
 
-#define LOG_INFO(module, message) Uplinkzero::__globalLoggerPtr->Info(module, message);
+#define LOG_INFO(message) Uplinkzero::__globalLoggerPtr->Info(__func__, message);
 
-#define LOG_NOTICE(module, message) Uplinkzero::__globalLoggerPtr->Notice(module, message);
+#define LOG_NOTICE(message) Uplinkzero::__globalLoggerPtr->Notice(__func__, message);
 
-#define LOG_WARNING(module, message) Uplinkzero::__globalLoggerPtr->Warning(module, message);
+#define LOG_WARNING(message) Uplinkzero::__globalLoggerPtr->Warning(__func__, message);
 
-#define LOG_ERROR(module, message) Uplinkzero::__globalLoggerPtr->Error(module, message);
+#define LOG_ERROR(message) Uplinkzero::__globalLoggerPtr->Error(__func__, message);
 
-#define LOG_CRITICAL(module, message) Uplinkzero::__globalLoggerPtr->Critical(module, message);
+#define LOG_CRITICAL(message) Uplinkzero::__globalLoggerPtr->Critical(__func__, message);
+
+#define LOGF_TRACE(format, ...)                                                                                        \
+    Uplinkzero::__globalLoggerPtr->Trace(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+
+#define LOGF_DEBUG(format, ...)                                                                                        \
+    Uplinkzero::__globalLoggerPtr->Debug(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+
+#define LOGF_INFO(format, ...)                                                                                         \
+    Uplinkzero::__globalLoggerPtr->Info(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+
+#define LOGF_NOTICE(format, ...)                                                                                       \
+    Uplinkzero::__globalLoggerPtr->Notice(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+
+#define LOGF_WARNING(format, ...)                                                                                      \
+    Uplinkzero::__globalLoggerPtr->Warning(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+
+#define LOGF_ERROR(format, ...)                                                                                        \
+    Uplinkzero::__globalLoggerPtr->Error(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+
+#define LOGF_CRITICAL(format, ...)                                                                                     \
+    Uplinkzero::__globalLoggerPtr->Critical(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 }; // namespace Uplinkzero

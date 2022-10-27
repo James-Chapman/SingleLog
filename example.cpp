@@ -49,15 +49,28 @@ void LocalPointerLogging()
 // Logging with macros. This is the recommended logging option.
 void MacroLogging()
 {
+    LOG_TRACE_FUNCTION();
+    LOG_CRITICAL("Critial message");
+    LOG_ERROR("Error message");
+    LOG_WARNING("Warning message");
+    LOG_NOTICE("Notice message");
+    LOG_INFO("Info message");
+    LOG_DEBUG("Debug message");
+    LOG_TRACE("Trace message");
+}
+
+// Logging with macros. This is the recommended logging option.
+void MacroLogging2()
+{
     std::string module = "MACRO thread";
     LOG_TRACE_FUNCTION();
-    LOG_CRITICAL(module, "Critial message");
-    LOG_ERROR(module, "Error message");
-    LOG_WARNING(module, "Warning message");
-    LOG_NOTICE(module, "Notice message");
-    LOG_INFO(module, "Info message");
-    LOG_DEBUG(module, "Debug message");
-    LOG_TRACE(module, "Trace message");
+    LOGF_CRITICAL("%s message %d", "Critical", 1);
+    LOGF_ERROR("%s message %d", "Error", 2);
+    LOGF_WARNING("%s message %d", "Warning", 3);
+    LOGF_NOTICE("%s message %d", "Notice", 4);
+    LOGF_INFO("%s message %d", "Info", 5);
+    LOGF_DEBUG("%s message %d", "Debug", 6);
+    LOGF_TRACE("%s message %d", "Trace", 7);
 }
 
 int main()
@@ -65,7 +78,9 @@ int main()
     SetupLogging();
     std::thread t1(LocalPointerLogging);
     std::thread t2(MacroLogging);
+    std::thread t3(MacroLogging2);
     t1.join();
     t2.join();
+    t3.join();
     return 0;
 }

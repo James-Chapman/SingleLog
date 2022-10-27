@@ -1,0 +1,8 @@
+SingleLog/*
+.vscode/*
+*.dblite
+*.obj
+*.exe
+*.ilk
+*.pdb
+*.log
