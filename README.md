@@ -1,7 +1,7 @@
 # SingleLog
 ## Description
 
-SingleLog is a header only C++11 singleton logging library. It's fast, convenient, compiles on Windows and Linux, and does what it says on the tin.
+SingleLog is a header only **C++14** singleton logging library. It's fast, convenient, compiles on Windows and Linux, and does what it says on the tin.
 
 
 ## Note
