@@ -23,7 +23,7 @@ sources = ['example.cpp']
 release_env = env.Clone()
 if sys.platform == "win32":
     release_env.Append(CCFLAGS=['/std:c++14', '/EHsc', '/O2', '/MT'])
-    release_env.Append(LINKFLAGS=['/NODEFAULTLIB:LIBCMT'])
+    release_env.Append(CPPDEFINES=["WIN32"])
 elif sys.platform == "linux":
     release_env.Append(CCFLAGS=['-std=c++14', '-O2'])
     release_env.Append(LINKFLAGS=['-lstdc++'])
