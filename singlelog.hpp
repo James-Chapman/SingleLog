@@ -1,28 +1,12 @@
-/*******************************************************************************
- * Copyright (c) 2016-2022 James Chapman
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright Notice and this permission Notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
- ********************************************************************************/
+// Copyright(c) 2016-2023, James Chapman
+//
+// Use of this source code is governed by a BSD -
+// style license that can be found in the LICENSE file or
+// at https://choosealicense.com/licenses/bsd-3-clause/
 
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <codecvt>
 #include <ctime>
@@ -31,10 +15,12 @@
 #include <iomanip>
 #include <iostream>
 #include <locale>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
 #include <thread>
+#include <time.h>
 
 namespace Uplinkzero
 {
@@ -64,7 +50,11 @@ namespace
         std::time_t ttnow = std::chrono::system_clock::to_time_t(now);
         char timedisplay[100];
         struct tm buf;
-        errno_t err = localtime_s(&buf, &ttnow);
+    #ifdef WIN32
+        auto err = localtime_s(&buf, &ttnow);
+    #else
+        auto err = localtime_r(&ttnow, &buf);
+    #endif
         if (std::strftime(timedisplay, sizeof(timedisplay), "%F %T", &buf))
         {
             return timedisplay;
@@ -84,6 +74,8 @@ namespace
 
 namespace Logging
 {
+    constexpr auto LogggerInternalBufferSize = 10240;
+
     /**
      * Levels of logging available
      */
@@ -102,8 +94,25 @@ namespace Logging
     /**
      * Logger class
      */
-    class SingleLog
+    class SingleLog final
     {
+    private:
+        /**
+         * Private Constructor
+         */
+        SingleLog()
+            : m_consoleLogLevel(LogLevel::L_TRACE), m_fileLogLevel(LogLevel::L_TRACE), m_filePath(""), m_exit(false)
+        {
+            m_consoleWriter = std::thread(&SingleLog::ConsoleWriter, this);
+            m_fstreamWriter = std::thread(&SingleLog::FstreamWriter, this);
+        }
+
+        /**
+         * Delete copy constructor
+         */
+        SingleLog(SingleLog const& copy) = delete;
+        SingleLog& operator=(SingleLog const& copy) = delete;
+
     public:
         /**
          * Return a reference to the instance of this class
@@ -160,6 +169,7 @@ namespace Logging
         {
             m_filePath = filePath;
             m_fileOut.open(m_filePath, std::ios_base::out);
+            m_fileOut.rdbuf()->pubsetbuf(m_writeBuffer.data(), LogggerInternalBufferSize);
         }
 
         /**
@@ -312,21 +322,7 @@ namespace Logging
         }
 
     private:
-        /**
-         * Private Constructor
-         */
-        SingleLog()
-            : m_consoleLogLevel(LogLevel::L_TRACE), m_fileLogLevel(LogLevel::L_TRACE), m_filePath(""), m_exit(false)
-        {
-            m_consoleWriter = std::thread(&SingleLog::ConsoleWriter, this);
-            m_fstreamWriter = std::thread(&SingleLog::FstreamWriter, this);
-        }
 
-        /**
-         * Copy constructor, we don't want it since this is a Singleton
-         */
-        SingleLog(SingleLog const& copy) = delete;
-        SingleLog& operator=(SingleLog const& copy) = delete;
 
         /**
          * Create a common format log line
@@ -427,19 +423,22 @@ namespace Logging
             }
         }
 
-        LogLevel m_consoleLogLevel; // Min level for console logs
-        LogLevel m_fileLogLevel;    // Min level for file logs
-        std::ofstream m_fileOut;    // File output stream
-        std::string m_filePath;     // Log file path
+        
+
+        LogLevel m_consoleLogLevel{LogLevel::L_INFO};
+        LogLevel m_fileLogLevel{LogLevel::L_TRACE};
+        std::ofstream m_fileOut{};
+        std::string m_filePath{};
+        std::array<char, LogggerInternalBufferSize> m_writeBuffer;
 
         std::mutex m_consoleLogDequeLock;
         std::mutex m_fstreamLogDequeLock;
         std::mutex m_fstreamLock;
 
-        std::deque<std::string> m_consoleLogDeque;
-        std::deque<std::string> m_fstreamLogDeque;
+        std::deque<std::string> m_consoleLogDeque{};
+        std::deque<std::string> m_fstreamLogDeque{};
 
-        std::atomic_bool m_exit;
+        std::atomic_bool m_exit{false};
 
         std::thread m_consoleWriter;
         std::thread m_fstreamWriter;
@@ -449,24 +448,24 @@ namespace Logging
 
 namespace
 {
-    auto __globalLoggerPtr = Uplinkzero::Logging::SingleLog::GetInstance();
+    auto g_globalSingleLogPtr = Uplinkzero::Logging::SingleLog::GetInstance();
 
-    class FunctionTrace
+    class FunctionTrace final
     {
     public:
-        FunctionTrace(const std::string& functionName) : m_functionName{functionName}
+        explicit FunctionTrace(const std::string& functionName) : m_functionName{functionName}
         {
-            Uplinkzero::Logging::SingleLog* m_logger = Uplinkzero::Logging::SingleLog::GetInstance();
+            auto m_logger = Uplinkzero::Logging::SingleLog::GetInstance();
             std::stringstream ss;
             ss << " ---> Entering function: " << m_functionName;
-            __globalLoggerPtr->Trace("FunctionTrace", ss.str());
+            g_globalSingleLogPtr->Trace("FunctionTrace", ss.str());
         }
 
         ~FunctionTrace()
         {
             std::stringstream ss;
             ss << " <--- Exiting function: " << m_functionName;
-            __globalLoggerPtr->Trace("FunctionTrace", ss.str());
+            g_globalSingleLogPtr->Trace("FunctionTrace", ss.str());
         }
 
     private:
@@ -490,41 +489,41 @@ namespace StringTools
     }
 } // namespace StringTools
 
-#define LOG_TRACE_FUNCTION() Uplinkzero::FunctionTrace tr(__func__);
+#define LOG_FUNCTION_TRACE() Uplinkzero::FunctionTrace tr(__func__);
 
-#define LOG_TRACE(message) Uplinkzero::__globalLoggerPtr->Trace(__func__, message);
+#define LOG_TRACE(message) Uplinkzero::g_globalSingleLogPtr->Trace(__func__, message);
 
-#define LOG_DEBUG(message) Uplinkzero::__globalLoggerPtr->Debug(__func__, message);
+#define LOG_DEBUG(message) Uplinkzero::g_globalSingleLogPtr->Debug(__func__, message);
 
-#define LOG_INFO(message) Uplinkzero::__globalLoggerPtr->Info(__func__, message);
+#define LOG_INFO(message) Uplinkzero::g_globalSingleLogPtr->Info(__func__, message);
 
-#define LOG_NOTICE(message) Uplinkzero::__globalLoggerPtr->Notice(__func__, message);
+#define LOG_NOTICE(message) Uplinkzero::g_globalSingleLogPtr->Notice(__func__, message);
 
-#define LOG_WARNING(message) Uplinkzero::__globalLoggerPtr->Warning(__func__, message);
+#define LOG_WARNING(message) Uplinkzero::g_globalSingleLogPtr->Warning(__func__, message);
 
-#define LOG_ERROR(message) Uplinkzero::__globalLoggerPtr->Error(__func__, message);
+#define LOG_ERROR(message) Uplinkzero::g_globalSingleLogPtr->Error(__func__, message);
 
-#define LOG_CRITICAL(message) Uplinkzero::__globalLoggerPtr->Critical(__func__, message);
+#define LOG_CRITICAL(message) Uplinkzero::g_globalSingleLogPtr->Critical(__func__, message);
 
 #define LOGF_TRACE(format, ...)                                                                                        \
-    Uplinkzero::__globalLoggerPtr->Trace(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    Uplinkzero::g_globalSingleLogPtr->Trace(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_DEBUG(format, ...)                                                                                        \
-    Uplinkzero::__globalLoggerPtr->Debug(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    Uplinkzero::g_globalSingleLogPtr->Debug(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_INFO(format, ...)                                                                                         \
-    Uplinkzero::__globalLoggerPtr->Info(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    Uplinkzero::g_globalSingleLogPtr->Info(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_NOTICE(format, ...)                                                                                       \
-    Uplinkzero::__globalLoggerPtr->Notice(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    Uplinkzero::g_globalSingleLogPtr->Notice(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_WARNING(format, ...)                                                                                      \
-    Uplinkzero::__globalLoggerPtr->Warning(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    Uplinkzero::g_globalSingleLogPtr->Warning(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_ERROR(format, ...)                                                                                        \
-    Uplinkzero::__globalLoggerPtr->Error(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    Uplinkzero::g_globalSingleLogPtr->Error(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_CRITICAL(format, ...)                                                                                     \
-    Uplinkzero::__globalLoggerPtr->Critical(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    Uplinkzero::g_globalSingleLogPtr->Critical(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 }; // namespace Uplinkzero
