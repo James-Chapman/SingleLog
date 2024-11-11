@@ -14,31 +14,31 @@ Using SingleLog is as easy as this:
 // Configure the logger
 void SetupLogging()
 {
-    Uplinkzero::Logging::SingleLog * pLogger = Uplinkzero::Logging::SingleLog::GetInstance();
-    pLogger->SetConsoleLogLevel(Uplinkzero::Logging::LogLevel::L_INFO);
-    pLogger->SetFileLogLevel(Uplinkzero::Logging::LogLevel::L_TRACE);
-    pLogger->SetLogFilePath("example.log");
+    auto& logger { Uplinkzero::Logging::SingleLog::GetInstance() };
+    logger.SetConsoleLogLevel(Uplinkzero::Logging::LogLevel::L_INFO);
+    logger.SetFileLogLevel(Uplinkzero::Logging::LogLevel::L_TRACE);
+    logger.SetLogFilePath("example.log");
 }
 
-// Logging via a local pointer
-void LocalPointerLogging()
+// Logging via a reference to the logger
+void LocalRefLogging()
 {
-    std::string module = "Local pointer thread";
-    Uplinkzero::Logging::SingleLog * pLogger = Uplinkzero::Logging::SingleLog::GetInstance();
-    pLogger->Critical(module, "Critial message");
-    pLogger->Error(module, "Error message");
-    pLogger->Warning(module, "Warning message");
-    pLogger->Notice(module, "Notice message");
-    pLogger->Info(module, "Info message");
-    pLogger->Debug(module, "Debug message");
-    pLogger->Trace(module, "Trace message");
+    std::string module = "Local logger ref thread";
+    auto& logger { Uplinkzero::Logging::SingleLog::GetInstance() };
+    logger.Critical(module, "Critial message");
+    logger.Error(module, "Error message");
+    logger.Warning(module, "Warning message");
+    logger.Notice(module, "Notice message");
+    logger.Info(module, "Info message");
+    logger.Debug(module, "Debug message");
+    logger.Trace(module, "Trace message");
 }
 
 // Logging with macros. This is the recommended logging option.
 void MacroLogging()
 {
     std::string module = "MACRO thread";
-    LOG_TRACE_FUNCTION();
+    LOG_FUNCTION_TRACE;
     LOG_CRITICAL(module, "Critial message");
     LOG_ERROR(module, "Error message");
     LOG_WARNING(module, "Warning message");
@@ -62,36 +62,40 @@ int main()
 Which, when run will produce the following in the console:
 
 ```
-2010-12-01 13:01:12  <CRITICAL>  Local pointer thread:  Critial message
-2010-12-01 13:01:12  <ERROR>  Local pointer thread:  Error message
-2010-12-01 13:01:12  <CRITICAL>  MACRO thread:  Critial message
-2010-12-01 13:01:12  <WARNING>  Local pointer thread:  Warning message
-2010-12-01 13:01:12  <NOTICE>  Local pointer thread:  Notice message
-2010-12-01 13:01:12  <ERROR>  MACRO thread:  Error message
-2010-12-01 13:01:12  <INFO>  Local pointer thread:  Info message
-2010-12-01 13:01:12  <WARNING>  MACRO thread:  Warning message
-2010-12-01 13:01:12  <NOTICE>  MACRO thread:  Notice message
-2010-12-01 13:01:12  <INFO>  MACRO thread:  Info message
+user@machine> ./SingleLogExample 
+2010-11-29 21:27:42 +0000  <CRITICAL>  Local logger ref thread:  Critial message
+2010-11-29 21:27:42 +0000  <CRITICAL>  MacroLogging:  Critial message
+2010-11-29 21:27:42 +0000  <ERROR>  Local logger ref thread:  Error message
+2010-11-29 21:27:42 +0000  <ERROR>  MacroLogging:  Error message
+2010-11-29 21:27:42 +0000  <WARNING>  Local logger ref thread:  Warning message
+2010-11-29 21:27:42 +0000  <WARNING>  MacroLogging:  Warning message
+2010-11-29 21:27:42 +0000  <NOTICE>  MacroLogging:  Notice message
+2010-11-29 21:27:42 +0000  <NOTICE>  Local logger ref thread:  Notice message
+2010-11-29 21:27:42 +0000  <INFO>  MacroLogging:  Info message
+2010-11-29 21:27:42 +0000  <INFO>  Local logger ref thread:  Info message
 ```
 
 And the following in the log file **"example.log"**:
 
 ```
-2010-12-01 13:01:12  <TRACE>  FunctionTrace:   ---> Entering function: MacroLogging
-2010-12-01 13:01:12  <CRITICAL>  Local pointer thread:  Critial message
-2010-12-01 13:01:12  <ERROR>  Local pointer thread:  Error message
-2010-12-01 13:01:12  <CRITICAL>  MACRO thread:  Critial message
-2010-12-01 13:01:12  <WARNING>  Local pointer thread:  Warning message
-2010-12-01 13:01:12  <NOTICE>  Local pointer thread:  Notice message
-2010-12-01 13:01:12  <ERROR>  MACRO thread:  Error message
-2010-12-01 13:01:12  <INFO>  Local pointer thread:  Info message
-2010-12-01 13:01:12  <WARNING>  MACRO thread:  Warning message
-2010-12-01 13:01:12  <DEBUG>  Local pointer thread:  Debug message
-2010-12-01 13:01:12  <NOTICE>  MACRO thread:  Notice message
-2010-12-01 13:01:12  <TRACE>  Local pointer thread:  Trace message
-2010-12-01 13:01:12  <INFO>  MACRO thread:  Info message
-2010-12-01 13:01:12  <DEBUG>  MACRO thread:  Debug message
-2010-12-01 13:01:12  <TRACE>  MACRO thread:  Trace message
-2010-12-01 13:01:12  <TRACE>  FunctionTrace:   <--- Exiting function: MacroLogging
+user@machine> cat example.log
+2010-11-29 21:27:42 +0000  <CRITICAL>  Local logger ref thread:  Critial message
+2010-11-29 21:27:42 +0000  <TRACE>  FunctionTrace:  >>> Entering: MacroLogging
+2010-11-29 21:27:42 +0000  <CRITICAL>  MacroLogging:  Critial message
+2010-11-29 21:27:42 +0000  <ERROR>  Local logger ref thread:  Error message
+2010-11-29 21:27:42 +0000  <ERROR>  MacroLogging:  Error message
+2010-11-29 21:27:42 +0000  <WARNING>  Local logger ref thread:  Warning message
+2010-11-29 21:27:42 +0000  <WARNING>  MacroLogging:  Warning message
+2010-11-29 21:27:42 +0000  <NOTICE>  MacroLogging:  Notice message
+2010-11-29 21:27:42 +0000  <NOTICE>  Local logger ref thread:  Notice message
+2010-11-29 21:27:42 +0000  <INFO>  MacroLogging:  Info message
+2010-11-29 21:27:42 +0000  <DEBUG>  MacroLogging:  Debug message
+2010-11-29 21:27:42 +0000  <INFO>  Local logger ref thread:  Info message
+2010-11-29 21:27:42 +0000  <TRACE>  MacroLogging:  Trace message
+2010-11-29 21:27:42 +0000  <DEBUG>  Local logger ref thread:  Debug message
+2010-11-29 21:27:42 +0000  <TRACE>  FunctionTrace:  <<< Exiting: MacroLogging
+2010-11-29 21:27:42 +0000  <TRACE>  Local logger ref thread:  Trace message
+2010-11-29 21:27:42 +0000  <TRACE>  FunctionTrace:  <<< Exiting: MacroLogging_v2
+
 ```
 

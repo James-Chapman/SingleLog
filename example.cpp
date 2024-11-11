@@ -9,30 +9,30 @@
 // Configure the logger
 void SetupLogging()
 {
-    auto loggerPtr = Uplinkzero::Logging::SingleLog::GetInstance();
-    loggerPtr->SetConsoleLogLevel(Uplinkzero::Logging::LogLevel::L_INFO);
-    loggerPtr->SetFileLogLevel(Uplinkzero::Logging::LogLevel::L_TRACE);
-    loggerPtr->SetLogFilePath("example.log");
+    auto& logger { Uplinkzero::Logging::SingleLog::GetInstance() };
+    logger.SetConsoleLogLevel(Uplinkzero::Logging::LogLevel::L_INFO);
+    logger.SetFileLogLevel(Uplinkzero::Logging::LogLevel::L_TRACE);
+    logger.SetLogFilePath("example.log");
 }
 
-// Logging via a local pointer
-void LocalPointerLogging()
+// Logging via a local reference to the logger
+void LocalRefLogging()
 {
-    std::string module = "Local pointer thread";
-    auto loggerPtr = Uplinkzero::Logging::SingleLog::GetInstance();
-    loggerPtr->Critical(module, "Critial message");
-    loggerPtr->Error(module, "Error message");
-    loggerPtr->Warning(module, "Warning message");
-    loggerPtr->Notice(module, "Notice message");
-    loggerPtr->Info(module, "Info message");
-    loggerPtr->Debug(module, "Debug message");
-    loggerPtr->Trace(module, "Trace message");
+    std::string module = "Local logger ref thread";
+    auto& logger { Uplinkzero::Logging::SingleLog::GetInstance() };
+    logger.Critical(module, "Critial message");
+    logger.Error(module, "Error message");
+    logger.Warning(module, "Warning message");
+    logger.Notice(module, "Notice message");
+    logger.Info(module, "Info message");
+    logger.Debug(module, "Debug message");
+    logger.Trace(module, "Trace message");
 }
 
 // Logging with macros. This is the recommended logging option.
 void MacroLogging()
 {
-    LOG_FUNCTION_TRACE();
+    LOG_FUNCTION_TRACE;
     LOG_CRITICAL("Critial message");
     LOG_ERROR("Error message");
     LOG_WARNING("Warning message");
@@ -43,10 +43,10 @@ void MacroLogging()
 }
 
 // Logging with macros. This is the recommended logging option.
-void MacroLogging2()
+void MacroLogging_v2()
 {
     std::string module = "MACRO thread";
-    LOG_FUNCTION_TRACE();
+    LOG_FUNCTION_TRACE;
     LOGF_CRITICAL("%s message %d", "Critical", 1);
     LOGF_ERROR("%s message %d", "Error", 2);
     LOGF_WARNING("%s message %d", "Warning", 3);
@@ -59,9 +59,9 @@ void MacroLogging2()
 int main()
 {
     SetupLogging();
-    std::thread t1(LocalPointerLogging);
+    std::thread t1(LocalRefLogging);
     std::thread t2(MacroLogging);
-    std::thread t3(MacroLogging2);
+    std::thread t3(MacroLogging_v2);
     t1.join();
     t2.join();
     t3.join();
