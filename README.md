@@ -4,11 +4,6 @@
 SingleLog is a header only **C++14** singleton logging library. It's fast, convenient, compiles on Windows and Linux, and does what it says on the tin.
 
 
-## Note
-
-* By design, trace level logging is only available in debug builds. In release builds the lowest logging level is debug.
-
-
 ## Example
 
 Using SingleLog is as easy as this:
