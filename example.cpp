@@ -1,10 +1,13 @@
-// Copyright(c) 2016-2023, James Chapman
+// Copyright(c) 2016-2024, James Chapman
 //
 // Use of this source code is governed by a BSD -
 // style license that can be found in the LICENSE file or
 // at https://choosealicense.com/licenses/bsd-3-clause/
 
 #include "singlelog.hpp"
+
+#include "Foo.hpp"
+#include "Bar.hpp"
 
 // Configure the logger
 void SetupLogging()
@@ -59,11 +62,10 @@ void MacroLogging_v2()
 int main()
 {
     SetupLogging();
-    std::thread t1(LocalRefLogging);
-    std::thread t2(MacroLogging);
-    std::thread t3(MacroLogging_v2);
-    t1.join();
-    t2.join();
-    t3.join();
+    std::jthread t1(LocalRefLogging);
+    std::jthread t2(MacroLogging);
+    std::jthread t3(MacroLogging_v2);
+    Uplinkzero::Foo foo{};
+    Uplinkzero::Bar bar{};
     return 0;
 }
