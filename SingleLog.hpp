@@ -50,11 +50,11 @@ namespace
         std::time_t ttnow = std::chrono::system_clock::to_time_t(now);
         char timedisplay[64];
         tm buf;
-    #ifdef WIN32
+#ifdef WIN32
         localtime_s(&buf, &ttnow);
-    #else
+#else
         localtime_r(&ttnow, &buf);
-    #endif
+#endif
         if (std::strftime(timedisplay, sizeof(timedisplay), "%F %T %z", &buf))
         {
             return timedisplay;
@@ -322,22 +322,18 @@ namespace Logging
         }
 
     private:
-
-
         /**
          * Create a common format log line
          * Note: There might be a better way to produce UTF8 from ANSI text? This is "expensive".
          */
-        std::string MakeLogLine(const std::string& _level, const std::string& _module,
-                                       const std::string& _message)
+        std::string MakeLogLine(const std::string& _level, const std::string& _module, const std::string& _message)
         {
             std::stringstream ss;
             ss << "" << CurrentDateTime() << "  <" << _level << ">  " + _module + ":  " << _message << "\n";
             return ss.str();
         }
 
-        std::string MakeLogLine(const std::wstring& _level, const std::wstring& _module,
-                                       const std::wstring& _message)
+        std::string MakeLogLine(const std::wstring& _level, const std::wstring& _module, const std::wstring& _message)
         {
             std::wstringstream ss;
             ss << L"" << CurrentDateTimeW() << L"  <" << _level << L">  " + _module + L":  " << _message << L"\n";
@@ -423,8 +419,6 @@ namespace Logging
             }
         }
 
-        
-
         LogLevel m_consoleLogLevel{LogLevel::L_INFO};
         LogLevel m_fileLogLevel{LogLevel::L_TRACE};
         std::ofstream m_fileOut{};
@@ -448,7 +442,7 @@ namespace Logging
 
 namespace
 {
-    auto& g_globalSingleLogInstanceRef{ Uplinkzero::Logging::SingleLog::GetInstance()};
+    auto& g_globalSingleLogInstanceRef{Uplinkzero::Logging::SingleLog::GetInstance()};
 
     class FunctionTrace final
     {
@@ -505,24 +499,31 @@ namespace StringTools
 #define LOG_CRITICAL(message) Uplinkzero::g_globalSingleLogInstanceRef.Critical(__func__, message);
 
 #define LOGF_TRACE(format, ...)                                                                                        \
-    Uplinkzero::g_globalSingleLogInstanceRef.Trace(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    Uplinkzero::g_globalSingleLogInstanceRef.Trace(__func__,                                                           \
+                                                   Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_DEBUG(format, ...)                                                                                        \
-    Uplinkzero::g_globalSingleLogInstanceRef.Debug(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    Uplinkzero::g_globalSingleLogInstanceRef.Debug(__func__,                                                           \
+                                                   Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_INFO(format, ...)                                                                                         \
-    Uplinkzero::g_globalSingleLogInstanceRef.Info(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    Uplinkzero::g_globalSingleLogInstanceRef.Info(__func__,                                                            \
+                                                  Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_NOTICE(format, ...)                                                                                       \
-    Uplinkzero::g_globalSingleLogInstanceRef.Notice(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    Uplinkzero::g_globalSingleLogInstanceRef.Notice(__func__,                                                          \
+                                                    Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_WARNING(format, ...)                                                                                      \
-    Uplinkzero::g_globalSingleLogInstanceRef.Warning(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    Uplinkzero::g_globalSingleLogInstanceRef.Warning(__func__,                                                         \
+                                                     Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_ERROR(format, ...)                                                                                        \
-    Uplinkzero::g_globalSingleLogInstanceRef.Error(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    Uplinkzero::g_globalSingleLogInstanceRef.Error(__func__,                                                           \
+                                                   Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_CRITICAL(format, ...)                                                                                     \
-    Uplinkzero::g_globalSingleLogInstanceRef.Critical(__func__, Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    Uplinkzero::g_globalSingleLogInstanceRef.Critical(__func__,                                                        \
+                                                      Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 }; // namespace Uplinkzero

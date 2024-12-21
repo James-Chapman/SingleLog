@@ -16,6 +16,10 @@ def build_project(build_type):
     Args:
       build_type: String representing the build type ("release" or "debug").
     """
+    # Source and header directories
+    src_dir = "."
+    include_dir = "."
+
     # Define build directories based on OS and build type
     output_dir = "build"
     build_dir = os.path.join(output_dir, build_type)
@@ -50,7 +54,10 @@ def build_project(build_type):
         "-Wno-unused",
         "-Wfatal-errors",
         "-fdiagnostics-show-option",
+        "-fsanitize=address",
     ]
+    linker_flags = ["-fsanitize=address"]
+
     if platform.system() == "Windows":
         compiler = "cl"
         std_flag = "/std:c++20"
@@ -72,10 +79,6 @@ def build_project(build_type):
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(build_dir, exist_ok=True)
     os.makedirs(obj_dir, exist_ok=True)
-
-    # Source and header directories
-    src_dir = "."
-    include_dir = "."
 
     # Get all source files from the src directory
     source_files = [
@@ -101,7 +104,9 @@ def build_project(build_type):
 
     # Link object files into the final executable
     output_file = os.path.join(build_dir, "SingleLogExample")
-    link_command = [compiler] + object_files + [f"-L{obj_dir}", "-o", output_file]
+    link_command = (
+        [compiler] + linker_flags + object_files + [f"-L{obj_dir}", "-o", output_file]
+    )
     print(f"Linking: {object_files} -> {output_file}")
     os.system(" ".join(link_command))
 
