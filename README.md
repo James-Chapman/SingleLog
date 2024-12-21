@@ -1,7 +1,9 @@
 # SingleLog
 ## Description
 
-SingleLog is a header only **C++14** singleton logging library. It's fast, convenient, compiles on Windows and Linux, and does what it says on the tin. The example is C++20 and will build with **scons**.
+SingleLog is a header only **C++14** singleton logging library. It's fast, convenient, compiles on Windows and Linux, and does what it says on the tin. 
+
+The provided example is C++20 and can be built with with the provided build script `build.py`. Simply run `python3 build`.
 
 
 ## Example
@@ -9,7 +11,7 @@ SingleLog is a header only **C++14** singleton logging library. It's fast, conve
 Using SingleLog is as easy as this:
 
 ```c++
-#include "singlelog.hpp"
+#include "SingleLog.hpp"
 
 #include "Foo.hpp"
 #include "Bar.hpp"
