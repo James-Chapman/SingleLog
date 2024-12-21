@@ -4,10 +4,15 @@
 // style license that can be found in the LICENSE file or
 // at https://choosealicense.com/licenses/bsd-3-clause/
 
-#include "singlelog.hpp"
+#include "SingleLog.hpp"
 
 #include "Foo.hpp"
 #include "Bar.hpp"
+
+void SetupLogging();
+void LocalRefLogging();
+void MacroLogging();
+void MacroLogging_v2();
 
 // Configure the logger
 void SetupLogging()

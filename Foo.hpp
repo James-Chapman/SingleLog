@@ -4,6 +4,8 @@
 // style license that can be found in the LICENSE file or
 // at https://choosealicense.com/licenses/bsd-3-clause/
 
+#pragma once
+
 #include <thread>
 
 namespace Uplinkzero

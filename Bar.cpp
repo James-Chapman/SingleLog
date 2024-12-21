@@ -5,7 +5,7 @@
 // at https://choosealicense.com/licenses/bsd-3-clause/
 
 #include "Bar.hpp"
-#include "singlelog.hpp"
+#include "SingleLog.hpp"
 
 namespace Uplinkzero
 {

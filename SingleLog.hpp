@@ -9,6 +9,7 @@
 #include <array>
 #include <atomic>
 #include <codecvt>
+#include <cstddef>
 #include <ctime>
 #include <deque>
 #include <fstream>
@@ -48,11 +49,11 @@ namespace
         auto now = std::chrono::system_clock::now();
         std::time_t ttnow = std::chrono::system_clock::to_time_t(now);
         char timedisplay[64];
-        struct tm buf;
+        tm buf;
     #ifdef WIN32
-        auto err = localtime_s(&buf, &ttnow);
+        localtime_s(&buf, &ttnow);
     #else
-        auto err = localtime_r(&ttnow, &buf);
+        localtime_r(&ttnow, &buf);
     #endif
         if (std::strftime(timedisplay, sizeof(timedisplay), "%F %T %z", &buf))
         {
@@ -327,7 +328,7 @@ namespace Logging
          * Create a common format log line
          * Note: There might be a better way to produce UTF8 from ANSI text? This is "expensive".
          */
-        inline std::string MakeLogLine(const std::string& _level, const std::string& _module,
+        std::string MakeLogLine(const std::string& _level, const std::string& _module,
                                        const std::string& _message)
         {
             std::stringstream ss;
@@ -335,7 +336,7 @@ namespace Logging
             return ss.str();
         }
 
-        inline std::string MakeLogLine(const std::wstring& _level, const std::wstring& _module,
+        std::string MakeLogLine(const std::wstring& _level, const std::wstring& _module,
                                        const std::wstring& _message)
         {
             std::wstringstream ss;
@@ -346,7 +347,7 @@ namespace Logging
         /**
          * Log message to console deque
          */
-        inline void ConsoleLog(std::string _s)
+        void ConsoleLog(std::string _s)
         {
             std::lock_guard<std::mutex> lock(m_consoleLogDequeLock);
             m_consoleLogDeque.push_back(_s);
@@ -355,7 +356,7 @@ namespace Logging
         /**
          * Log message to file deque
          */
-        inline void FileLog(std::string _s)
+        void FileLog(std::string _s)
         {
             std::lock_guard<std::mutex> lock(m_fstreamLogDequeLock);
             m_fstreamLogDeque.push_back(_s);
@@ -428,19 +429,19 @@ namespace Logging
         LogLevel m_fileLogLevel{LogLevel::L_TRACE};
         std::ofstream m_fileOut{};
         std::string m_filePath{};
-        std::array<char, LogggerInternalBufferSize> m_writeBuffer;
+        std::array<char, LogggerInternalBufferSize> m_writeBuffer{0};
 
-        std::mutex m_consoleLogDequeLock;
-        std::mutex m_fstreamLogDequeLock;
-        std::mutex m_fstreamLock;
+        std::mutex m_consoleLogDequeLock{};
+        std::mutex m_fstreamLogDequeLock{};
+        std::mutex m_fstreamLock{};
 
         std::deque<std::string> m_consoleLogDeque{};
         std::deque<std::string> m_fstreamLogDeque{};
 
         std::atomic_bool m_exit{false};
 
-        std::thread m_consoleWriter;
-        std::thread m_fstreamWriter;
+        std::thread m_consoleWriter{};
+        std::thread m_fstreamWriter{};
     };
 
 }; // namespace Logging
@@ -481,8 +482,8 @@ namespace StringTools
         {
             return {};
         }
-        std::unique_ptr<char[]> buffer = std::make_unique<char[]>(size);
-        std::snprintf(buffer.get(), size, format.c_str(), std::forward<Args>(args)...);
+        std::unique_ptr<char[]> buffer = std::make_unique<char[]>(static_cast<size_t>(size));
+        std::snprintf(buffer.get(), static_cast<size_t>(size), format.c_str(), std::forward<Args>(args)...);
         return std::string(buffer.get(), buffer.get() + size - 1); // We don't want the '\0' inside
     }
 } // namespace StringTools

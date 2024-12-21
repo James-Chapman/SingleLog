@@ -1,61 +1,122 @@
-#!python
+# Copyright(c) 2016-2024, James Chapman
+#
+# Use of this source code is governed by a BSD -
+# style license that can be found in the LICENSE file or
+# at https://choosealicense.com/licenses/bsd-3-clause/
 
-import argparse
 import os
-import string
-import subprocess
+import platform
 import sys
 
-g_bin_name = "example.exe"
-g_clang_compiler = r'C:\Program Files\LLVM\bin\clang++.exe'
-g_source_files = ['example.cpp']
-g_preproc_defs = []
+
+def build_project(build_type):
+    """
+    Builds the CPP project with the specified build type (release or debug).
+
+    Args:
+      build_type: String representing the build type ("release" or "debug").
+    """
+    # Define build directories based on OS and build type
+    output_dir = "build"
+    build_dir = os.path.join(output_dir, build_type)
+    obj_dir = os.path.join(build_dir, "obj")
+    compiler = "g++"
+    flags = []
+    std_flag = "-std=c++20"
+    additional_flags = [
+        "-Wall",
+        "-pedantic",
+        "-Weffc++",
+        "-Wextra",
+        "-Werror",
+        "-Wconversion",
+        "-Wsign-conversion",
+        "-Wshadow",
+        "-Wold-style-cast",
+        "-Woverloaded-virtual",
+        "-Wfloat-equal",
+        "-Wwrite-strings",
+        "-Wpointer-arith",
+        "-Wcast-qual",
+        "-Wcast-align",
+        "-Wswitch-enum",
+        "-Wswitch-default",
+        "-Winit-self",
+        "-Wredundant-decls",
+        "-Wlogical-op",
+        "-Winline",
+        "-Wunreachable-code",
+        "-Wmissing-declarations",
+        "-Wno-unused",
+        "-Wfatal-errors",
+        "-fdiagnostics-show-option",
+    ]
+    if platform.system() == "Windows":
+        compiler = "cl"
+        std_flag = "/std:c++20"
+        additional_flags = ["/W4", "/WX"]  # Equivalent to -Wall and -pedantic
+
+    # Define flags based on build type
+    if build_type == "release":
+        if platform.system() == "Windows":
+            flags = ["/O2", "/EHsc", std_flag] + additional_flags
+        else:
+            flags = ["-O3", "-DNDEBUG", std_flag] + additional_flags
+    else:
+        if platform.system() == "Windows":
+            flags = ["/Zi", "/Od", "/EHsc", std_flag] + additional_flags
+        else:
+            flags = ["-g", "-O0", "-Wall", "-pedantic", std_flag] + additional_flags
+
+    # Create build directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(build_dir, exist_ok=True)
+    os.makedirs(obj_dir, exist_ok=True)
+
+    # Source and header directories
+    src_dir = "."
+    include_dir = "."
+
+    # Get all source files from the src directory
+    source_files = [
+        os.path.join(src_dir, f) for f in os.listdir(src_dir) if f.endswith(".cpp")
+    ]
+
+    # Compile each source file with appropriate flags
+    object_files = []
+    for source_file in source_files:
+        object_file = os.path.join(
+            obj_dir, os.path.splitext(os.path.basename(source_file))[0] + ".o"
+        )
+        command = [
+            compiler,
+            "-c",
+            f"-I{include_dir}",
+            f"-o {object_file}",
+            source_file,
+        ] + flags
+        print(f"Compiling: {source_file} -> {object_file}")
+        os.system(" ".join(command))
+        object_files.append(object_file)
+
+    # Link object files into the final executable
+    output_file = os.path.join(build_dir, "SingleLogExample")
+    link_command = [compiler] + object_files + [f"-L{obj_dir}", "-o", output_file]
+    print(f"Linking: {object_files} -> {output_file}")
+    os.system(" ".join(link_command))
+
+    print(f"Build completed successfully! Output: {output_file}")
 
 
-def checkFilePaths():
-    if not os.path.exists(g_clang_compiler):
-        print("Build failed: Could not find %s" % (g_clang_compiler))
-        sys.exit(-1)
+if __name__ == "__main__":
+    # Get build type from command line argument (optional)
+    build_type = "release"
+    if len(sys.argv) > 1:
+        build_type = sys.argv[1].lower()
+    if build_type not in ("release", "debug"):
+        print(
+            f"Invalid build type '{build_type}'. Valid options are 'release' or 'debug'."
+        )
+        sys.exit(1)
 
-    # Check source files exist
-    for source_file in g_source_files:
-        if not os.path.exists(source_file):
-            print("Build failed: Could not find %s" % (source_file))
-            sys.exit(-1)
-
-
-def build(args) -> int:
-    preproc_string = ""
-    if len(g_preproc_defs) > 0:
-        preproc_string = "-D" + " ".join(g_preproc_defs)
-
-    source_files_string = ""
-    if len(g_source_files) > 0:
-        source_files_string = " ".join(g_source_files)
-
-    pdb_string = ""
-    if args.pdb:
-        pdb_string = "-g "
-
-    os.makedirs('build', exist_ok=True)
-
-    # Build
-    build_command = "\"%s\" -fcolor-diagnostics -fansi-escape-codes %s %s %s -o build/%s" % (
-        g_clang_compiler, pdb_string, source_files_string, preproc_string, g_bin_name)
-    print(build_command)
-    process = subprocess.Popen(build_command, shell=True)
-    process.wait()
-    return process.returncode
-
-
-def main() -> int:
-    """Echo the input arguments to standard output"""
-    parser = argparse.ArgumentParser(prog='build.py',)
-    parser.add_argument('--pdb', action='store_true')  # on/off flag
-    args = parser.parse_args()
-    checkFilePaths()
-    return build(args)
-
-
-if __name__ == '__main__':
-    sys.exit(main())  # next section explains the use of sys.exit
+    build_project(build_type)
