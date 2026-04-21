@@ -9,7 +9,9 @@
 #include <array>
 #include <atomic>
 #include <codecvt>
+#include <condition_variable>
 #include <cstddef>
+#include <cstdio>
 #include <ctime>
 #include <deque>
 #include <fstream>
@@ -29,14 +31,17 @@ namespace
 {
     // C++11 format converter
     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> utfConverter;
+    std::mutex utfConverterLock;
 
     std::string ToNarrow(const std::wstring& inString)
     {
+        std::lock_guard<std::mutex> lock(utfConverterLock);
         return utfConverter.to_bytes(inString);
     }
 
     std::wstring ToWide(const std::string& inString)
     {
+        std::lock_guard<std::mutex> lock(utfConverterLock);
         return utfConverter.from_bytes(inString);
     }
 
@@ -134,9 +139,12 @@ namespace Logging
             if (!m_exit.load())
             {
                 m_exit.store(true);
+                m_consoleCv.notify_all();
+                m_fstreamCv.notify_all();
                 m_consoleWriter.join();
                 m_fstreamWriter.join();
             }
+            std::lock_guard<std::mutex> lock(m_fstreamLock);
             if (m_fileOut.is_open())
             {
                 m_fileOut << "\n\n";
@@ -150,7 +158,7 @@ namespace Logging
          */
         void SetConsoleLogLevel(const LogLevel& logLevel)
         {
-            m_consoleLogLevel = logLevel;
+            m_consoleLogLevel.store(logLevel);
         }
 
         /**
@@ -159,7 +167,7 @@ namespace Logging
          */
         void SetFileLogLevel(const LogLevel& logLevel)
         {
-            m_fileLogLevel = logLevel;
+            m_fileLogLevel.store(logLevel);
         }
 
         /**
@@ -167,9 +175,17 @@ namespace Logging
          */
         void SetLogFilePath(const std::string& filePath)
         {
+            std::lock_guard<std::mutex> lock(m_fstreamLock);
             m_filePath = filePath;
+            if (m_fileOut.is_open())
+            {
+                m_fileOut.close();
+            }
             m_fileOut.open(m_filePath, std::ios_base::out);
-            m_fileOut.rdbuf()->pubsetbuf(m_writeBuffer.data(), LogggerInternalBufferSize);
+            if (m_fileOut.is_open())
+            {
+                m_fileOut.rdbuf()->pubsetbuf(m_writeBuffer.data(), LogggerInternalBufferSize);
+            }
         }
 
         /**
@@ -185,11 +201,11 @@ namespace Logging
          */
         void LogIt(LogLevel level, const std::string& line)
         {
-            if (m_consoleLogLevel <= level)
+            if (m_consoleLogLevel.load() <= level)
             {
                 ConsoleLog(line);
             }
-            if ((m_fileLogLevel <= level) && (m_fileOut.is_open()))
+            if (m_fileLogLevel.load() <= level)
             {
                 FileLog(line);
             }
@@ -347,6 +363,7 @@ namespace Logging
         {
             std::lock_guard<std::mutex> lock(m_consoleLogDequeLock);
             m_consoleLogDeque.push_back(_s);
+            m_consoleCv.notify_one();
         }
 
         /**
@@ -356,6 +373,7 @@ namespace Logging
         {
             std::lock_guard<std::mutex> lock(m_fstreamLogDequeLock);
             m_fstreamLogDeque.push_back(_s);
+            m_fstreamCv.notify_one();
         }
 
         /**
@@ -363,25 +381,20 @@ namespace Logging
          */
         void ConsoleWriter()
         {
-            //
-            while (1)
+            while (true)
             {
-                bool consoleLogEmpty = m_consoleLogDeque.empty();
-                if (!consoleLogEmpty)
+                std::string s;
                 {
-                    std::lock_guard<std::mutex> lock(m_consoleLogDequeLock);
-                    std::string s = m_consoleLogDeque.front();
+                    std::unique_lock<std::mutex> lock(m_consoleLogDequeLock);
+                    m_consoleCv.wait(lock, [this]() { return m_exit.load() || !m_consoleLogDeque.empty(); });
+                    if (m_exit.load() && m_consoleLogDeque.empty())
+                    {
+                        break;
+                    }
+                    s = m_consoleLogDeque.front();
                     m_consoleLogDeque.pop_front();
-                    std::cout << s;
                 }
-
-                if ((m_exit.load()) && (consoleLogEmpty))
-                {
-                    break;
-                }
-
-                // Short sleep to avoid consuming high CPU
-                std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                std::cout << s;
             }
         }
 
@@ -390,37 +403,29 @@ namespace Logging
          */
         void FstreamWriter()
         {
-            //
-            while (1)
+            while (true)
             {
-                bool fstreamLogEmpty = m_fstreamLogDeque.empty();
-                if (!fstreamLogEmpty)
+                std::string s;
                 {
-                    std::string s;
+                    std::unique_lock<std::mutex> lock(m_fstreamLogDequeLock);
+                    m_fstreamCv.wait(lock, [this]() { return m_exit.load() || !m_fstreamLogDeque.empty(); });
+                    if (m_exit.load() && m_fstreamLogDeque.empty())
                     {
-                        std::lock_guard<std::mutex> lock(m_fstreamLogDequeLock);
-                        s = m_fstreamLogDeque.front();
-                        m_fstreamLogDeque.pop_front();
+                        break;
                     }
-                    {
-                        std::lock_guard<std::mutex> lock(m_fstreamLock);
-                        m_fileOut.flush();
-                        m_fileOut << s;
-                    }
+                    s = m_fstreamLogDeque.front();
+                    m_fstreamLogDeque.pop_front();
                 }
-
-                if ((m_exit.load()) && (fstreamLogEmpty))
+                std::lock_guard<std::mutex> lock(m_fstreamLock);
+                if (m_fileOut.is_open())
                 {
-                    break;
+                    m_fileOut << s;
                 }
-
-                // Short sleep to avoid consuming high CPU
-                std::this_thread::sleep_for(std::chrono::milliseconds(2));
             }
         }
 
-        LogLevel m_consoleLogLevel{LogLevel::L_INFO};
-        LogLevel m_fileLogLevel{LogLevel::L_TRACE};
+        std::atomic<LogLevel> m_consoleLogLevel{LogLevel::L_INFO};
+        std::atomic<LogLevel> m_fileLogLevel{LogLevel::L_TRACE};
         std::ofstream m_fileOut{};
         std::string m_filePath{};
         std::array<char, LogggerInternalBufferSize> m_writeBuffer{0};
@@ -428,6 +433,8 @@ namespace Logging
         std::mutex m_consoleLogDequeLock{};
         std::mutex m_fstreamLogDequeLock{};
         std::mutex m_fstreamLock{};
+        std::condition_variable m_consoleCv{};
+        std::condition_variable m_fstreamCv{};
 
         std::deque<std::string> m_consoleLogDeque{};
         std::deque<std::string> m_fstreamLogDeque{};

@@ -7,6 +7,7 @@
 import os
 import platform
 import sys
+import subprocess
 
 
 def build_project(build_type):
@@ -95,11 +96,12 @@ def build_project(build_type):
             compiler,
             "-c",
             f"-I{include_dir}",
-            f"-o {object_file}",
+            "-o",
+            object_file,
             source_file,
         ] + flags
         print(f"Compiling: {source_file} -> {object_file}")
-        os.system(" ".join(command))
+        subprocess.run(command, check=True)
         object_files.append(object_file)
 
     # Link object files into the final executable
@@ -108,7 +110,7 @@ def build_project(build_type):
         [compiler] + linker_flags + object_files + [f"-L{obj_dir}", "-o", output_file]
     )
     print(f"Linking: {object_files} -> {output_file}")
-    os.system(" ".join(link_command))
+    subprocess.run(link_command, check=True)
 
     print(f"Build completed successfully! Output: {output_file}")
 
