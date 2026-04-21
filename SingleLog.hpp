@@ -106,7 +106,7 @@ namespace Logging
          * Private Constructor
          */
         SingleLog()
-            : m_consoleLogLevel(LogLevel::L_TRACE), m_fileLogLevel(LogLevel::L_TRACE), m_filePath(""), m_exit(false)
+            : m_consoleLogLevel(LogLevel::L_TRACE), m_fileLogLevel(LogLevel::L_TRACE), m_filePath("")
         {
             m_consoleWriter = std::thread(&SingleLog::ConsoleWriter, this);
             m_fstreamWriter = std::thread(&SingleLog::FstreamWriter, this);
@@ -136,12 +136,22 @@ namespace Logging
          */
         ~SingleLog()
         {
-            if (!m_exit.load())
             {
-                m_exit.store(true);
-                m_consoleCv.notify_all();
-                m_fstreamCv.notify_all();
+                std::lock_guard<std::mutex> lock(m_consoleLogDequeLock);
+                m_consoleExit = true;
+            }
+            m_consoleCv.notify_all();
+            {
+                std::lock_guard<std::mutex> lock(m_fstreamLogDequeLock);
+                m_fstreamExit = true;
+            }
+            m_fstreamCv.notify_all();
+            if (m_consoleWriter.joinable())
+            {
                 m_consoleWriter.join();
+            }
+            if (m_fstreamWriter.joinable())
+            {
                 m_fstreamWriter.join();
             }
             std::lock_guard<std::mutex> lock(m_fstreamLock);
@@ -386,8 +396,8 @@ namespace Logging
                 std::string s;
                 {
                     std::unique_lock<std::mutex> lock(m_consoleLogDequeLock);
-                    m_consoleCv.wait(lock, [this]() { return m_exit.load() || !m_consoleLogDeque.empty(); });
-                    if (m_exit.load() && m_consoleLogDeque.empty())
+                    m_consoleCv.wait(lock, [this]() { return m_consoleExit || !m_consoleLogDeque.empty(); });
+                    if (m_consoleExit && m_consoleLogDeque.empty())
                     {
                         break;
                     }
@@ -408,8 +418,8 @@ namespace Logging
                 std::string s;
                 {
                     std::unique_lock<std::mutex> lock(m_fstreamLogDequeLock);
-                    m_fstreamCv.wait(lock, [this]() { return m_exit.load() || !m_fstreamLogDeque.empty(); });
-                    if (m_exit.load() && m_fstreamLogDeque.empty())
+                    m_fstreamCv.wait(lock, [this]() { return m_fstreamExit || !m_fstreamLogDeque.empty(); });
+                    if (m_fstreamExit && m_fstreamLogDeque.empty())
                     {
                         break;
                     }
@@ -439,7 +449,8 @@ namespace Logging
         std::deque<std::string> m_consoleLogDeque{};
         std::deque<std::string> m_fstreamLogDeque{};
 
-        std::atomic_bool m_exit{false};
+        bool m_consoleExit{false};
+        bool m_fstreamExit{false};
 
         std::thread m_consoleWriter{};
         std::thread m_fstreamWriter{};
