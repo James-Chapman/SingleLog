@@ -1,7 +1,7 @@
 # SingleLog
 ## Description
 
-SingleLog is a header only **C++14** singleton logging library. It's fast, convenient, compiles on Windows and Linux, and does what it says on the tin. 
+SingleLog is a header only **C++20** singleton logging library. It's fast, convenient, compiles on Windows and Linux, and does what it says on the tin. 
 
 The provided example is C++20 and can be built with with the provided build script `build.py`. Simply run `python3 build`.
 
@@ -30,7 +30,7 @@ void LocalRefLogging()
 {
     std::string module = "Local logger ref thread";
     auto& logger { Uplinkzero::Logging::SingleLog::GetInstance() };
-    logger.Critical(module, "Critial message");
+    logger.Critical(module, "Critical message");
     logger.Error(module, "Error message");
     logger.Warning(module, "Warning message");
     logger.Notice(module, "Notice message");
@@ -43,7 +43,7 @@ void LocalRefLogging()
 void MacroLogging()
 {
     LOG_FUNCTION_TRACE;
-    LOG_CRITICAL("Critial message");
+    LOG_CRITICAL("Critical message");
     LOG_ERROR("Error message");
     LOG_WARNING("Warning message");
     LOG_NOTICE("Notice message");

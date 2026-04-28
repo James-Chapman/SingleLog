@@ -28,7 +28,7 @@ void LocalRefLogging()
 {
     std::string module = "Local logger ref thread";
     auto& logger { Uplinkzero::Logging::SingleLog::GetInstance() };
-    logger.Critical(module, "Critial message");
+    logger.Critical(module, "Critical message");
     logger.Error(module, "Error message");
     logger.Warning(module, "Warning message");
     logger.Notice(module, "Notice message");
