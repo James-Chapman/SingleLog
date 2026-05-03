@@ -17,17 +17,17 @@ void MacroLogging_v2();
 // Configure the logger
 void SetupLogging()
 {
-    auto& logger { Uplinkzero::Logging::SingleLog::GetInstance() };
-    logger.SetConsoleLogLevel(Uplinkzero::Logging::LogLevel::L_INFO);
-    logger.SetFileLogLevel(Uplinkzero::Logging::LogLevel::L_TRACE);
+    auto& logger { uplinkzero::logging::SingleLog::GetInstance() };
+    logger.SetConsoleLogLevel(uplinkzero::logging::LogLevel::L_INFO);
+    logger.SetFileLogLevel(uplinkzero::logging::LogLevel::L_TRACE);
     logger.SetLogFilePath("example.log");
 }
 
-// Logging via a local reference to the logger
+// logging via a local reference to the logger
 void LocalRefLogging()
 {
     std::string module = "Local logger ref thread";
-    auto& logger { Uplinkzero::Logging::SingleLog::GetInstance() };
+    auto& logger { uplinkzero::logging::SingleLog::GetInstance() };
     logger.Critical(module, "Critical message");
     logger.Error(module, "Error message");
     logger.Warning(module, "Warning message");
@@ -37,7 +37,7 @@ void LocalRefLogging()
     logger.Trace(module, "Trace message");
 }
 
-// Logging with macros. This is the recommended logging option.
+// logging with macros. This is the recommended logging option.
 void MacroLogging()
 {
     LOG_FUNCTION_TRACE;
@@ -50,7 +50,7 @@ void MacroLogging()
     LOG_TRACE("Trace message");
 }
 
-// Logging with macros. This is the recommended logging option.
+// logging with macros. This is the recommended logging option.
 void MacroLogging_v2()
 {
     std::string module = "MACRO thread";
@@ -70,7 +70,7 @@ int main()
     std::jthread t1(LocalRefLogging);
     std::jthread t2(MacroLogging);
     std::jthread t3(MacroLogging_v2);
-    Uplinkzero::Foo foo{};
-    Uplinkzero::Bar bar{};
+    uplinkzero::Foo foo{};
+    uplinkzero::Bar bar{};
     return 0;
 }
