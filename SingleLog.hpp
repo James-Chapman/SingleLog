@@ -24,7 +24,7 @@
 #include <thread>
 #include <utility>
 
-namespace Uplinkzero
+namespace uplinkzero
 {
 
 namespace logging
@@ -547,7 +547,7 @@ namespace logging
 
 namespace
 {
-    auto& g_globalSingleLogInstanceRef{Uplinkzero::logging::SingleLog::GetInstance()};
+    auto& g_globalSingleLogInstanceRef{uplinkzero::logging::SingleLog::GetInstance()};
 
     class FunctionTrace final
     {
@@ -589,48 +589,48 @@ namespace StringTools
     }
 } // namespace StringTools
 
-#define LOG_FUNCTION_TRACE Uplinkzero::FunctionTrace tr(__func__);
+#define LOG_FUNCTION_TRACE uplinkzero::FunctionTrace tr(__func__);
 
-#define LOG_TRACE(message) Uplinkzero::g_globalSingleLogInstanceRef.Trace(__func__, message);
+#define LOG_TRACE(message) uplinkzero::g_globalSingleLogInstanceRef.Trace(__func__, message);
 
-#define LOG_DEBUG(message) Uplinkzero::g_globalSingleLogInstanceRef.Debug(__func__, message);
+#define LOG_DEBUG(message) uplinkzero::g_globalSingleLogInstanceRef.Debug(__func__, message);
 
-#define LOG_INFO(message) Uplinkzero::g_globalSingleLogInstanceRef.Info(__func__, message);
+#define LOG_INFO(message) uplinkzero::g_globalSingleLogInstanceRef.Info(__func__, message);
 
-#define LOG_NOTICE(message) Uplinkzero::g_globalSingleLogInstanceRef.Notice(__func__, message);
+#define LOG_NOTICE(message) uplinkzero::g_globalSingleLogInstanceRef.Notice(__func__, message);
 
-#define LOG_WARNING(message) Uplinkzero::g_globalSingleLogInstanceRef.Warning(__func__, message);
+#define LOG_WARNING(message) uplinkzero::g_globalSingleLogInstanceRef.Warning(__func__, message);
 
-#define LOG_ERROR(message) Uplinkzero::g_globalSingleLogInstanceRef.Error(__func__, message);
+#define LOG_ERROR(message) uplinkzero::g_globalSingleLogInstanceRef.Error(__func__, message);
 
-#define LOG_CRITICAL(message) Uplinkzero::g_globalSingleLogInstanceRef.Critical(__func__, message);
+#define LOG_CRITICAL(message) uplinkzero::g_globalSingleLogInstanceRef.Critical(__func__, message);
 
 #define LOGF_TRACE(format, ...)                                                                                        \
-    Uplinkzero::g_globalSingleLogInstanceRef.Trace(__func__,                                                           \
-                                                   Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    uplinkzero::g_globalSingleLogInstanceRef.Trace(__func__,                                                           \
+                                                   uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_DEBUG(format, ...)                                                                                        \
-    Uplinkzero::g_globalSingleLogInstanceRef.Debug(__func__,                                                           \
-                                                   Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    uplinkzero::g_globalSingleLogInstanceRef.Debug(__func__,                                                           \
+                                                   uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_INFO(format, ...)                                                                                         \
-    Uplinkzero::g_globalSingleLogInstanceRef.Info(__func__,                                                            \
-                                                  Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    uplinkzero::g_globalSingleLogInstanceRef.Info(__func__,                                                            \
+                                                  uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_NOTICE(format, ...)                                                                                       \
-    Uplinkzero::g_globalSingleLogInstanceRef.Notice(__func__,                                                          \
-                                                    Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    uplinkzero::g_globalSingleLogInstanceRef.Notice(__func__,                                                          \
+                                                    uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_WARNING(format, ...)                                                                                      \
-    Uplinkzero::g_globalSingleLogInstanceRef.Warning(__func__,                                                         \
-                                                     Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    uplinkzero::g_globalSingleLogInstanceRef.Warning(__func__,                                                         \
+                                                     uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_ERROR(format, ...)                                                                                        \
-    Uplinkzero::g_globalSingleLogInstanceRef.Error(__func__,                                                           \
-                                                   Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    uplinkzero::g_globalSingleLogInstanceRef.Error(__func__,                                                           \
+                                                   uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
 #define LOGF_CRITICAL(format, ...)                                                                                     \
-    Uplinkzero::g_globalSingleLogInstanceRef.Critical(__func__,                                                        \
-                                                      Uplinkzero::StringTools::string_format(format, __VA_ARGS__));
+    uplinkzero::g_globalSingleLogInstanceRef.Critical(__func__,                                                        \
+                                                      uplinkzero::StringTools::string_format(format, __VA_ARGS__));
 
-}; // namespace Uplinkzero
+}; // namespace uplinkzero
