@@ -19,9 +19,9 @@ Using SingleLog is as easy as this:
 // Configure the logger
 void SetupLogging()
 {
-    auto& logger { Uplinkzero::Logging::SingleLog::GetInstance() };
-    logger.SetConsoleLogLevel(Uplinkzero::Logging::LogLevel::L_INFO);
-    logger.SetFileLogLevel(Uplinkzero::Logging::LogLevel::L_TRACE);
+    auto& logger { uplinkzero::logging::SingleLog::GetInstance() };
+    logger.SetConsoleLogLevel(uplinkzero::logging::LogLevel::L_INFO);
+    logger.SetFileLogLevel(uplinkzero::logging::LogLevel::L_TRACE);
     logger.SetLogFilePath("example.log");
 }
 
@@ -29,7 +29,7 @@ void SetupLogging()
 void LocalRefLogging()
 {
     std::string module = "Local logger ref thread";
-    auto& logger { Uplinkzero::Logging::SingleLog::GetInstance() };
+    auto& logger { uplinkzero::logging::SingleLog::GetInstance() };
     logger.Critical(module, "Critical message");
     logger.Error(module, "Error message");
     logger.Warning(module, "Warning message");
